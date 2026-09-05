@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }} | Grace Solutions Fleet ERP{% endblock %}</title>
+    
+    <!-- Fonts & Icons (FontAwesome 6.5, Bootstrap Icons & Google Rounded Fonts) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Odoo Theme Stylesheet -->
+    <link href="{{ url_for('static', filename='css/odoo_theme.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #sidebar {
+            width: var(--sidebar-width);
+            height: calc(100vh - 48px);
+            position: fixed;
+            left: 0;
+            top: 48px;
+            background: var(--odoo-bg-sheet);
+            border-right: 1px solid var(--odoo-border-color);
+            z-index: 1000;
+            transition: var(--transition-smooth);
+            padding: 1.25rem 0.85rem;
+            overflow-y: auto;
+        }
+
+        .nav-group-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--odoo-text-light);
+            margin: 1.2rem 0 0.4rem 0.6rem;
+            font-weight: 700;
+        }
+
+        .nav-link-custom {
+            display: flex;
+            align-items: center;
+            padding: 0.55rem 0.8rem;
+            color: var(--odoo-text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 3px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .nav-link-custom i, .nav-link-custom .bi {
+            width: 24px;
+            font-size: 1.05rem;
+            margin-right: 10px;
+            color: var(--odoo-purple);
+        }
+
+        .nav-link-custom:hover, .nav-link-custom.active {
+            background: var(--odoo-purple-light);
+            color: var(--odoo-purple);
+            font-weight: 700;
+        }
+
+        .dropdown-menu-custom {
+            display: none;
+            margin-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            list-style: none;
+            padding-left: 0;
+        }
+        .dropdown-menu-custom.show {
+            display: block;
+        }
+        .dropdown-menu-custom li {
+            margin: 0;
+        }
+        .dropdown-menu-custom a {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.45rem 0.75rem;
+            font-size: 0.83rem;
+            color: var(--odoo-text-muted);
+            text-decoration: none;
+            border-radius: 6px;
+        }
+        .dropdown-menu-custom a i, .dropdown-menu-custom a .bi {
+            width: 20px;
+            font-size: 0.9rem;
+            color: var(--odoo-purple);
+        }
+        .dropdown-menu-custom a:hover {
+            background: var(--odoo-purple-light);
+            color: var(--odoo-purple);
+        }
+        .dropdown-toggle-icon {
+            margin-left: auto;
+            transition: transform 0.2s;
+        }
+        .rotated {
+            transform: rotate(180deg);
+        }
+
+        #main-content {
+            margin-left: var(--sidebar-width);
+            min-height: calc(100vh - 48px);
+            padding: 0 0 2rem 0;
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-body {
+            flex: 1;
+            padding: 0 24px;
+        }
+
+        .app-footer {
+            margin-top: 3rem;
+            padding: 1rem 0;
+            text-align: center;
+            border-top: 1px solid var(--odoo-border-color);
+            font-size: 0.78rem;
+            color: var(--odoo-text-muted);
+        }
+
+        .theme-switch-wrapper {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+        }
+
+        @media (max-width: 992px) {
+            #sidebar { left: -250px; }
+            #main-content { margin-left: 0; }
+            #sidebar.show { left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Odoo Main Top Navbar -->
+<header class="o_main_navbar">
+    <div class="d-flex align-items-center gap-3">
+        <button class="o_app_switcher_btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <!-- Recreated Brand Logo: Grace Solutions - An OnTrack Company -->
+        <a href="/" class="o_brand d-flex align-items-center text-decoration-none">
+            <div class="grace-logo-box me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: linear-gradient(135deg, #8B7EC8 0%, #6B8BCC 100%); border-radius: 8px; box-shadow: 0 2px 6px rgba(139, 126, 200, 0.25);">
+                <i class="fa-solid fa-truck-fast text-white" style="font-size: 0.95rem;"></i>
+            </div>
+            <div class="d-flex flex-column text-start">
+                <span class="fw-bold lh-1" style="font-size: 0.92rem; color: var(--odoo-purple); letter-spacing: -0.01em;">GRACE SOLUTIONS</span>
+                <span class="text-muted" style="font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">AN ONTRACK COMPANY</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="o_nav_user_menu">
+        {% if user_logged_in %}
+        <div class="dropdown">
+            <a href="#" class="d-flex align-items-center gap-2 text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                <img src="https://ui-avatars.com/api/?name={{ user_name }}&background=8B7EC8&color=fff" class="o_user_avatar">
+                <span class="d-none d-md-inline fw-semibold" style="font-size: 0.88rem; color: var(--odoo-text-main);">{{ user_name }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li class="dropdown-header text-muted small">Signed in as <strong>{{ user_role|capitalize }}</strong></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="fa-solid fa-key me-2 text-muted"></i> Change Password</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('settings.index') }}"><i class="fa-solid fa-gear me-2 text-muted"></i> Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('auth_logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i> Logout</a></li>
+            </ul>
+        </div>
+        {% else %}
+        <a href="{{ url_for('auth_login') }}" class="btn btn-sm btn-light fw-semibold">Login</a>
+        {% endif %}
+    </div>
+</header>
+
+<aside id="sidebar">
+    <div class="nav flex-column mt-2">
+        <!-- Dashboard -->
+        <a href="/" class="nav-link-custom {% if request.path == '/' %}active{% endif %}">
+            <i class="fas fa-th-large"></i> <span>Dashboard</span>
+        </a>
+
+        <!-- Vehicles dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-truck-moving"></i> <span>Fleet Vehicles</span>
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/vehicles/"><i class="fas fa-list"></i> <span>All Vehicles</span></a></li>
+                <li><a href="/vehicles/add"><i class="fas fa-plus"></i> <span>New Vehicle</span></a></li>
+            </ul>
+        </div>
+
+        <!-- Drivers dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-user-tie"></i> <span>Drivers</span>
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/drivers/"><i class="fas fa-list"></i> <span>All Drivers</span></a></li>
+                <li><a href="/drivers/add"><i class="fas fa-user-plus"></i> <span>New Driver</span></a></li>
+                <li><a href="/drivers/advance"><i class="fas fa-money-bill-wave"></i> <span>Advance Salary</span></a></li>
+            </ul>
+        </div>
+
+        <!-- Fuel dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-gas-pump"></i> Fuel Management
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/fuel/entry"><i class="fas fa-plus-circle"></i> Log Fuel Entry</a></li>
+                <li><a href="/fuel/report"><i class="fas fa-chart-line"></i> Fuel Efficiency Report</a></li>
+            </ul>
+        </div>
+
+        <p class="nav-group-label">Fleet Operations</p>
+
+        <!-- Maintenance dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-wrench"></i> Maintenance
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/maintenance/add"><i class="fas fa-plus-circle"></i> Add Maintenance</a></li>
+                <li><a href="/maintenance/history"><i class="fas fa-history"></i> Repair History</a></li>
+                <li><a href="/maintenance/report"><i class="fas fa-chart-line"></i> Cost Analysis</a></li>
+                <li><a href="/maintenance/schedule"><i class="fas fa-calendar-alt"></i> Scheduled Jobs</a></li>
+            </ul>
+        </div>
+
+        <!-- Spare Parts dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-boxes"></i> Spare Parts
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/expenses/spare-parts"><i class="fas fa-receipt"></i> Add Expense</a></li>
+                <li><a href="{{ url_for('expense.inventory') }}"><i class="fas fa-cubes"></i> Inventory</a></li>
+                <li><a href="/expenses/history"><i class="fas fa-history"></i> Expense Log</a></li>
+                <li><a href="/vendors/"><i class="fas fa-truck"></i> Suppliers & Vendors</a></li>
+            </ul>
+        </div>
+
+        <!-- Stock Update -->
+        <a href="/stock/update" class="nav-link-custom">
+            <i class="fas fa-boxes-stacked"></i> Stock Update
+        </a>
+
+        <!-- Salary -->
+        <a href="/salary/generate" class="nav-link-custom">
+            <i class="fas fa-file-invoice-dollar"></i> Driver Payroll
+        </a>
+
+        <!-- Permits -->
+        <a href="/permits/" class="nav-link-custom">
+            <i class="fas fa-shield-alt"></i> Permits & Compliance
+        </a>
+
+        <p class="nav-group-label">Reporting & Admin</p>
+
+        <!-- Reports dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-chart-pie"></i> Reports
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/reports/vehicle-stock"><i class="fas fa-chart-simple"></i> Fleet Inventory</a></li>
+                <li><a href="/reports/expense-summary"><i class="fas fa-coins"></i> Expense Summary</a></li>
+            </ul>
+        </div>
+
+        <!-- Settings dropdown -->
+        <div class="nav-item-dropdown">
+            <div class="nav-link-custom" onclick="toggleDropdown(this)">
+                <i class="fas fa-cog"></i> Configuration
+                <i class="fas fa-chevron-down dropdown-toggle-icon"></i>
+            </div>
+            <ul class="dropdown-menu-custom">
+                <li><a href="/settings/"><i class="fas fa-palette"></i> Branding</a></li>
+                <li><a href="/settings/company-info"><i class="fas fa-building"></i> Company Profile</a></li>
+                <li><a href="/settings/themes"><i class="fas fa-swatchbook"></i> Themes</a></li>
+                <li><a href="/settings/system-info"><i class="fas fa-info-circle"></i> System Info</a></li>
+            </ul>
+        </div>
+
+        <hr class="my-3" style="border-color: var(--odoo-border-color);">
+        <a href="{{ url_for('auth_logout') }}" class="nav-link-custom text-danger">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </a>
+    </div>
+</aside>
+
+<main id="main-content">
+    <div id="alert-container" class="px-4 pt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'danger' else 'danger' }} o_status_{{ category }} border-0 shadow-sm rounded-3 fade show d-flex align-items-center mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>{{ message }}</div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="content-body">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer text-uppercase fw-semibold" style="letter-spacing: 0.05em; font-size: 0.78rem;">
+        CRAFTED WITH PRECISION FOR GRACE LOGISTICS AN ONTRACK COMPANY &copy; 2026
+    </footer>
+</main>
+
+<div class="theme-switch-wrapper">
+    <button class="btn btn-odoo-secondary shadow-sm" onclick="toggleTheme()" id="themeBtn">
+        <i class="fas fa-moon me-1"></i> Dark Mode
+    </button>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleDropdown(element) {
+        const dropdown = element.closest('.nav-item-dropdown');
+        const menu = dropdown.querySelector('.dropdown-menu-custom');
+        const icon = element.querySelector('.dropdown-toggle-icon');
+        
+        document.querySelectorAll('.nav-item-dropdown .dropdown-menu-custom').forEach(otherMenu => {
+            if (otherMenu !== menu) {
+                otherMenu.classList.remove('show');
+                const otherIcon = otherMenu.closest('.nav-item-dropdown').querySelector('.dropdown-toggle-icon');
+                if (otherIcon) otherIcon.classList.remove('rotated');
+            }
+        });
+        
+        menu.classList.toggle('show');
+        if (icon) icon.classList.toggle('rotated');
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        const btn = document.getElementById('themeBtn');
+        if(body.classList.contains('dark-theme')) {
+            body.classList.remove('dark-theme');
+            localStorage.setItem('theme', 'light');
+            btn.innerHTML = '<i class="fas fa-moon me-1"></i> Dark Mode';
+        } else {
+            body.classList.add('dark-theme');
+            localStorage.setItem('theme', 'dark');
+            btn.innerHTML = '<i class="fas fa-sun me-1"></i> Light Mode';
+        }
+    }
+
+    function toggleSidebar() {
+        const body = document.body;
+        const sidebar = document.getElementById('sidebar');
+        if (window.innerWidth <= 992) {
+            sidebar.classList.toggle('show');
+        } else {
+            body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', body.classList.contains('sidebar-collapsed') ? 'true' : 'false');
+        }
+    }
+
+    if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth > 992) {
+        document.body.classList.add('sidebar-collapsed');
+    }
+
+    if(localStorage.getItem('theme') === 'dark') {
+        toggleTheme();
+    }
+
+    setTimeout(function() {
+        $('#alert-container .alert').fadeOut(500, function() {
+            $(this).remove();
+        });
+    }, 5000);
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

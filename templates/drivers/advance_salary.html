@@ -1,0 +1,1045 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-main-container">
+    <!-- Odoo-style Form View -->
+    <div class="o_form_view">
+        <!-- Header: Action Buttons (Enterprise Style) -->
+        <div class="o_form_buttons_container">
+            <div class="o_form_buttons_edit">
+                <button type="button" id="btnDiscardTop" class="btn btn-secondary o_btn_discard">
+                    <i class="fas fa-times"></i> Discard
+                </button>
+                <button type="button" id="btnSaveTop" class="btn btn-primary o_btn_save">
+                    <i class="fas fa-save"></i> Save Advance
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Form Sheet -->
+        <div class="o_form_sheet">
+            <!-- Header Section -->
+            <div class="o_form_sheet_header">
+                <div class="o_avatar_container">
+                    <div class="o_vehicle_avatar">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                </div>
+                <div class="o_title_editable">
+                    <h1>Advance Salary <span class="o_subtitle">Manage driver salary advances</span></h1>
+                    <div class="o_status_badge">
+                        <span class="badge bg-primary-soft text-primary">Financial Management</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Advance Form Section -->
+            <div class="o_group o_inner_group">
+                <div class="o_group_name">
+                    <i class="fas fa-plus-circle me-2"></i> Record New Advance
+                </div>
+                <div class="o_group_fields">
+                    <form method="POST" action="{{ url_for('driver.advance_salary') }}" id="advanceForm" novalidate>
+                        <div class="o_row o_row_registration">
+                            <div class="o_field_widget o_field_registration">
+                                <label class="o_form_label">Select Driver <span class="o_required">*</span></label>
+                                <div class="o_input_wrapper">
+                                    <i class="fas fa-user o_field_icon"></i>
+                                    <select name="driver_id" id="driver_id" class="o_select" required>
+                                        <option value="">-- Select Driver --</option>
+                                        {% for driver in drivers %}
+                                        <option value="{{ driver.driver_id }}" data-salary="{{ driver.base_salary }}"
+                                            data-balance="{{ driver.advance_balance|default(0) }}">
+                                            {{ driver.full_name }} - PKR {{ "{:,.2f}".format(driver.base_salary) }}
+                                            {% if driver.advance_balance|default(0) > 0 %}
+                                            | Advance: PKR {{ "{:,.2f}".format(driver.advance_balance) }}
+                                            {% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <span class="o_field_help">Select driver to record salary advance</span>
+                            </div>
+                            <div class="o_field_widget o_field_system_id">
+                                <label class="o_form_label">Driver ID</label>
+                                <div class="o_system_id_badge" id="driverIdDisplay">
+                                    <span>Auto‑detected</span>
+                                    <i class="fas fa-id-card ms-1"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Two Column Layout -->
+                        <div class="o_group">
+                            <div class="o_group_column">
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Date <span class="o_required">*</span></label>
+                                    <div class="o_input_currency">
+                                        <span class="o_currency_symbol"><i class="fas fa-calendar-alt"></i></span>
+                                        <input type="date" name="date" id="advanceDate" value="{{ today }}" required>
+                                    </div>
+                                </div>
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Advance Amount (PKR) <span
+                                            class="o_required">*</span></label>
+                                    <div class="o_input_currency">
+                                        <span class="o_currency_symbol">₨</span>
+                                        <input type="number" step="0.01" name="amount" id="amount" placeholder="0.00"
+                                            required>
+                                    </div>
+                                    <span class="o_field_help">Maximum allowed: <span id="max_amount">0</span> PKR (50%
+                                        of salary)</span>
+                                </div>
+                            </div>
+                            <div class="o_group_column">
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Remaining Balance (PKR)</label>
+                                    <div class="o_input_currency">
+                                        <span class="o_currency_symbol">₨</span>
+                                        <input type="text" id="remaining_balance" class="o_input" readonly
+                                            placeholder="Will be calculated" style="background-color: #F8FAFC;">
+                                    </div>
+                                    <span class="o_field_help">Available salary after advance deductions</span>
+                                </div>
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Driver Status</label>
+                                    <div class="o_system_id_badge" id="driverStatusDisplay">
+                                        <span>Not Selected</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="o_field_widget">
+                            <label class="o_form_label">Reason <span class="o_required">*</span></label>
+                            <textarea name="reason" id="advanceReason" class="o_input o_textarea" rows="3" required
+                                placeholder="e.g., Medical emergency, Family function, Vehicle repair, Education expenses"></textarea>
+                            <span class="o_field_help">Brief description of why advance is needed</span>
+                        </div>
+
+                        <div class="o_form_bottom_buttons" style="margin-top: 1rem;">
+                            <div class="o_button_panel">
+                                <button type="button" id="btnDiscardForm" class="btn o_btn_cancel_footer">
+                                    <i class="fas fa-undo"></i> Reset Form
+                                </button>
+                                <button type="submit" class="btn o_btn_save_footer" id="submitBtnFooter">
+                                    <i class="fas fa-save"></i> Record Advance
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Advances Table Section -->
+    <div class="o_list_view card mt-4">
+        <div class="card-header o_list_header">
+            <div class="o_list_header_title">
+                <i class="fas fa-clock me-2 text-warning"></i> Pending Advances
+                <span class="badge bg-light text-dark ms-2">{{ pending_advances|length }} records</span>
+            </div>
+            <div class="o_list_header_actions d-flex gap-2">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn o_filter_btn active" id="showAllPending">
+                        <i class="fas fa-list me-1"></i>All
+                    </button>
+                    <button class="btn o_filter_btn" id="showHighValue">
+                        <i class="fas fa-exclamation-triangle me-1"></i>High Value
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive o_list_table">
+                <table class="table table-hover o_data_table" id="pendingTable" width="100%">
+                    <thead>
+                        <tr>
+                            <th class="text-nowrap">ID</th>
+                            <th class="text-nowrap">Date</th>
+                            <th class="text-nowrap">Driver</th>
+                            <th class="text-center text-nowrap">Status</th>
+                            <th class="text-end text-nowrap">Amount (PKR)</th>
+                            <th class="text-nowrap">Reason</th>
+                            <th class="text-end text-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for advance in pending_advances %}
+                        <tr class="o_data_row" data-amount="{{ advance.amount }}">
+                            <td class="fw-semibold text-muted text-nowrap">#ADV-{{ advance.advance_id }}</td>
+                            <td class="text-nowrap"><i class="fa-regular fa-calendar text-muted me-1"></i>{{
+                                advance.date }}</td>
+                            <td class="o_driver_name_cell text-nowrap">
+                                <strong style="color: var(--odoo-text-main);">{{ advance.full_name }}</strong>
+                            </td>
+                            <td class="text-center text-nowrap">
+                                <span class="o_status_badge o_status_warning">
+                                    <i class="fa-solid fa-clock me-1"></i>Pending
+                                </span>
+                            </td>
+                            <td class="text-end text-danger fw-bold text-nowrap">
+                                PKR {{ "{:,.0f}".format(advance.amount) }}
+                            </td>
+                            <td class="text-nowrap">
+                                {{ advance.reason[:50] }}{% if advance.reason|length > 50 %}...{% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="o_action_btns">
+                                    <a href="{{ url_for('driver.mark_advance_deducted', advance_id=advance.advance_id) }}"
+                                        class="o_icon_btn" title="Deduct from Salary"
+                                        onclick="return confirm('Mark this advance as deducted from salary?')">
+                                        <i class="fa-solid fa-circle-check text-success"></i>
+                                    </a>
+                                    <a href="{{ url_for('driver.edit_advance', advance_id=advance.advance_id) }}"
+                                        class="o_icon_btn" title="Edit Advance">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <button class="o_icon_btn o_icon_rose o_btn_delete"
+                                        data-id="{{ advance.advance_id }}" data-name="{{ advance.full_name }}"
+                                        data-type="advance" title="Delete Advance">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                No pending advances found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advance History Table Section -->
+    <div class="o_list_view card mt-4">
+        <div class="card-header o_list_header">
+            <div class="o_list_header_title">
+                <i class="fas fa-history me-2 text-info"></i> Advance History
+                <span class="badge bg-light text-dark ms-2">{{ advance_history|length }} records</span>
+            </div>
+            <div class="o_list_header_actions d-flex gap-2">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn o_filter_btn active" id="showAllHistory">
+                        <i class="fas fa-list me-1"></i>All
+                    </button>
+                    <button class="btn o_filter_btn" id="showDeducted">
+                        <i class="fas fa-check-circle me-1"></i>Deducted
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive o_list_table">
+                <table class="table table-hover o_data_table" id="historyTable" width="100%">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-hashtag me-1"></i>ID</th>
+                            <th><i class="fas fa-calendar-alt me-1"></i>Date</th>
+                            <th><i class="fas fa-user me-1"></i>Driver</th>
+                            <th><i class="fas fa-money-bill me-1"></i>Amount (PKR)</th>
+                            <th><i class="fas fa-comment me-1"></i>Reason</th>
+                            <th><i class="fas fa-info-circle me-1"></i>Status</th>
+                            <th><i class="fas fa-calendar-week me-1"></i>Deduction Month</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for advance in advance_history %}
+                        <tr class="o_data_row">
+                            <td class="fw-bold text-primary">ADV-{{ advance.advance_id }}</td>
+                            <td>
+                                <div class="o_date_display">
+                                    <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                    {{ advance.date }}
+                                </div>
+                            </td>
+                            <td class="o_driver_name_cell">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="o_avatar_initials">
+                                        {{ advance.full_name[:2]|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">{{ advance.full_name }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td
+                                class="{% if advance.status == 'Deducted' %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                <i class="fas fa-rupee-sign me-1"></i>{{ "{:,.2f}".format(advance.amount) }}
+                            </td>
+                            <td>
+                                <div class="o_reason_text">
+                                    <i class="fas fa-quote-left text-muted me-1"></i>
+                                    {{ advance.reason[:60] }}{% if advance.reason|length > 60 %}...{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if advance.status == 'Deducted' %}
+                                <span class="o_status_badge o_status_active">
+                                    <i class="fas fa-check-circle me-1"></i>Deducted
+                                </span>
+                                {% elif advance.status == 'Paid Back' %}
+                                <span class="o_status_badge o_status_active"
+                                    style="background: #E0F2FE; color: #0369A1;">
+                                    <i class="fas fa-hand-holding-usd me-1"></i>Paid Back
+                                </span>
+                                {% else %}
+                                <span class="o_status_badge o_status_repair">
+                                    <i class="fas fa-clock me-1"></i>Pending
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if advance.deduction_month %}
+                                <i class="fas fa-calendar-check text-muted me-1"></i>{{ advance.deduction_month }}
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                No advance history found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade o_modal" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content o_modal_content">
+            <div class="modal-body text-center p-4">
+                <div class="o_modal_icon">
+                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
+                </div>
+                <h5 class="fw-bold mt-3">Delete Advance Record</h5>
+                <p class="text-muted">Are you sure you want to permanently delete this advance record?</p>
+                <div class="o_modal_reg_display" id="deleteItemDisplay"></div>
+                <p class="small text-danger mt-3">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    This action cannot be undone. All associated data will be removed.
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-secondary o_btn_cancel" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <a id="confirmDeleteBtn" href="#" class="btn btn-danger o_btn_danger">
+                    <i class="fas fa-trash-alt me-1"></i>Delete Permanently
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Keep all existing styles from your template */
+    :root {
+        --primary-blue: #1E3A8A;
+        --primary-light: #3B82F6;
+        --primary-soft-bg: #EFF6FF;
+        --gray-bg: #F8FAFC;
+        --card-white: #FFFFFF;
+        --border-light: #E2E8F0;
+        --text-dark: #0F172A;
+        --text-muted: #475569;
+        --required-red: #DC2626;
+        --focus-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    body {
+        background-color: var(--gray-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .odoo-main-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+
+    /* Form View */
+    .o_form_view {
+        position: relative;
+    }
+
+    .o_form_buttons_container {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_form_buttons_edit {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .o_btn_discard,
+    .o_btn_save {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .o_btn_discard {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_discard:hover {
+        background-color: #F1F5F9;
+        border-color: #CBD5E1;
+    }
+
+    .o_btn_save {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .o_btn_save:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    /* Form Sheet */
+    .o_form_sheet {
+        background: var(--card-white);
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        padding: 2rem;
+        border: 1px solid var(--border-light);
+    }
+
+    .o_form_sheet_header {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
+        border-bottom: 2px solid var(--border-light);
+    }
+
+    .o_vehicle_avatar {
+        width: 68px;
+        height: 68px;
+        background: var(--primary-soft-bg);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--primary-blue);
+    }
+
+    .o_title_editable h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-dark);
+    }
+
+    .o_subtitle {
+        font-size: 0.85rem;
+        font-weight: 400;
+        color: var(--text-muted);
+        margin-left: 0.5rem;
+    }
+
+    .o_status_badge .badge {
+        background-color: var(--primary-soft-bg);
+        color: var(--primary-blue);
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.9rem;
+        border-radius: 40px;
+    }
+
+    /* Registration Row */
+    .o_row_registration {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        background: var(--primary-soft-bg);
+        padding: 1.25rem 1.5rem;
+        border-radius: 18px;
+        border: 1px solid #DBEAFE;
+    }
+
+    .o_field_registration {
+        flex: 2;
+    }
+
+    .o_field_system_id {
+        flex: 1;
+    }
+
+    .o_input_wrapper {
+        position: relative;
+    }
+
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-blue);
+    }
+
+    .o_select {
+        width: 100%;
+        padding: 0.7rem 1rem 0.7rem 2.3rem;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 0.9rem;
+        background-color: var(--card-white);
+        appearance: none;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%233B82F6" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+    }
+
+    .o_select:focus {
+        border-color: var(--primary-light);
+        outline: none;
+        box-shadow: var(--focus-shadow);
+    }
+
+    .o_system_id_badge {
+        background-color: var(--card-white);
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        text-align: center;
+        font-weight: 500;
+        color: var(--primary-blue);
+        border: 1px solid var(--border-light);
+        font-size: 0.9rem;
+    }
+
+    /* Groups */
+    .o_group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .o_group_column {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .o_group_name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-dark);
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-light);
+        display: inline-block;
+    }
+
+    .o_group_name i {
+        color: var(--primary-blue);
+    }
+
+    .o_group_fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .o_field_widget {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .o_form_label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-muted);
+    }
+
+    .o_required {
+        color: var(--required-red);
+    }
+
+    .o_input,
+    .o_textarea {
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        padding: 0.65rem 0.9rem;
+        background-color: var(--card-white);
+        font-size: 0.9rem;
+        width: 100%;
+    }
+
+    .o_textarea {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .o_input:focus,
+    .o_textarea:focus {
+        border-color: var(--primary-light);
+        outline: none;
+        box-shadow: var(--focus-shadow);
+    }
+
+    /* Input Currency */
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        background: var(--card-white);
+        padding-left: 0.5rem;
+    }
+
+    .o_input_currency .o_currency_symbol {
+        padding: 0 0.5rem;
+        color: var(--text-muted);
+    }
+
+    .o_input_currency input {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+    }
+
+    /* List View Card */
+    .o_list_view {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+        overflow: hidden;
+    }
+
+    .card-header.o_list_header {
+        background: var(--card-white);
+        border-bottom: 1px solid var(--border-light);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .o_list_header_title {
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 1rem;
+    }
+
+    .o_filter_btn {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.35rem 1.2rem;
+        border-radius: 40px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .o_filter_btn.active,
+    .o_filter_btn:hover {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
+
+    /* Table Styling */
+    .o_list_table .table {
+        margin-bottom: 0;
+    }
+
+    .o_list_table thead th {
+        background: #F9FBFE;
+        border-bottom: 1px solid var(--border-light);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--text-muted);
+        padding: 1rem;
+    }
+
+    .o_data_row td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .o_data_row:hover td {
+        background-color: var(--gray-bg);
+    }
+
+    /* Avatar */
+    .o_avatar_initials {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #EFF6FF 0%, #E3EDFC 100%);
+        color: var(--primary-blue);
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 0.8rem;
+    }
+
+    /* Status Badges */
+    .o_status_badge {
+        padding: 0.3rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .o_status_active {
+        background: #E3F5EC;
+        color: #0A6E43;
+        border: 1px solid #B8E0D0;
+    }
+
+    .o_status_repair {
+        background: #FFF3E0;
+        color: #C17B0E;
+        border: 1px solid #FEDFAA;
+    }
+
+    /* Action Buttons */
+    .o_actions_group {
+        display: flex;
+        gap: 0.3rem;
+        justify-content: center;
+    }
+
+    .o_btn_edit,
+    .o_btn_delete,
+    .o_btn_advance {
+        background: transparent;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .o_btn_edit:hover {
+        background: #EFF6FF;
+        color: var(--primary-blue);
+    }
+
+    .o_btn_delete:hover {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+
+    .o_btn_advance:hover {
+        background: #FFF3E0;
+        color: #F59E0B;
+    }
+
+    .o_advance_negative {
+        color: #DC2626;
+        background-color: #FEF2F2;
+    }
+
+    /* Footer Buttons */
+    .o_form_bottom_buttons {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .o_button_panel {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .o_btn_cancel_footer,
+    .o_btn_save_footer {
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .o_btn_cancel_footer {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_cancel_footer:hover {
+        background-color: #F1F5F9;
+    }
+
+    .o_btn_save_footer {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .o_btn_save_footer:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    /* Modal */
+    .o_modal_content {
+        border-radius: 24px;
+        border: none;
+    }
+
+    .o_modal_icon {
+        background: #FEF2F2;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .o_modal_reg_display {
+        background: #F1F5F9;
+        display: inline-block;
+        padding: 0.4rem 1.2rem;
+        border-radius: 40px;
+        font-weight: 600;
+        margin-top: 0.75rem;
+        color: var(--primary-blue);
+    }
+
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+        .odoo-main-container {
+            padding: 0 0.75rem;
+        }
+
+        .o_form_sheet {
+            padding: 1.25rem;
+        }
+
+        .o_row_registration {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+    $(document).ready(function () {
+        // Initialize DataTables
+        if ($('#pendingTable tbody tr').length > 1) {
+            $('#pendingTable').DataTable({
+                pageLength: 10,
+                responsive: true,
+                language: { emptyTable: "No pending advances found" },
+                dom: '<"top d-flex justify-content-between align-items-center flex-wrap"lf>rt<"bottom d-flex justify-content-between align-items-center flex-wrap"ip>'
+            });
+        }
+
+        if ($('#historyTable tbody tr').length > 1) {
+            $('#historyTable').DataTable({
+                pageLength: 10,
+                responsive: true,
+                language: { emptyTable: "No advance history found" },
+                dom: '<"top d-flex justify-content-between align-items-center flex-wrap"lf>rt<"bottom d-flex justify-content-between align-items-center flex-wrap"ip>'
+            });
+        }
+
+        // Tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip();
+
+        // Driver selection handler
+        const driverSelect = document.getElementById('driver_id');
+        const amountInput = document.getElementById('amount');
+        const maxAmountSpan = document.getElementById('max_amount');
+        const remainingSpan = document.getElementById('remaining_balance');
+        const driverIdDisplay = document.getElementById('driverIdDisplay');
+        const driverStatusDisplay = document.getElementById('driverStatusDisplay');
+
+        if (driverSelect) {
+            driverSelect.addEventListener('change', function () {
+                const selected = this.options[this.selectedIndex];
+                const salary = parseFloat(selected.getAttribute('data-salary')) || 0;
+                const balance = parseFloat(selected.getAttribute('data-balance')) || 0;
+                const maxAdvance = salary * 0.5;
+
+                maxAmountSpan.innerText = maxAdvance.toFixed(2);
+                if (remainingSpan) {
+                    remainingSpan.value = (salary - balance).toFixed(2);
+                }
+                if (driverIdDisplay) {
+                    driverIdDisplay.querySelector('span').innerText = selected.value ? `Driver Selected` : 'Auto‑detected';
+                }
+                if (driverStatusDisplay) {
+                    driverStatusDisplay.querySelector('span').innerText = selected.value ? 'Active' : 'Not Selected';
+                }
+
+                if (amountInput) {
+                    amountInput.max = maxAdvance;
+                    amountInput.placeholder = `Max: ${maxAdvance.toFixed(2)}`;
+                }
+            });
+        }
+
+        // Amount validation
+        if (amountInput) {
+            amountInput.addEventListener('input', function () {
+                const max = parseFloat(this.max);
+                const value = parseFloat(this.value);
+                if (!isNaN(max) && !isNaN(value) && value > max) {
+                    this.value = max;
+                    const errorSpan = document.createElement('small');
+                    errorSpan.className = 'text-danger';
+                    errorSpan.innerText = ` Amount cannot exceed ${max.toFixed(2)} PKR`;
+                    this.parentNode.parentNode.appendChild(errorSpan);
+                    setTimeout(() => errorSpan.remove(), 3000);
+                }
+            });
+        }
+
+        // DISCARD FUNCTIONALITY - Fixed!
+        function resetForm() {
+            // Reset the form
+            document.getElementById('advanceForm').reset();
+
+            // Reset custom fields
+            if (driverSelect) driverSelect.value = '';
+            if (amountInput) amountInput.value = '';
+            if (maxAmountSpan) maxAmountSpan.innerText = '0';
+            if (remainingSpan) remainingSpan.value = '';
+            if (driverIdDisplay) driverIdDisplay.querySelector('span').innerText = 'Auto‑detected';
+            if (driverStatusDisplay) driverStatusDisplay.querySelector('span').innerText = 'Not Selected';
+
+            // Reset date to today
+            const dateInput = document.getElementById('advanceDate');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+
+            // Clear any error messages
+            $('.text-danger').remove();
+
+            // Show success message
+            const msg = $('<div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">' +
+                '<i class="fas fa-check-circle me-2"></i>Form has been reset successfully!' +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                '</div>');
+            $('body').append(msg);
+            setTimeout(() => msg.fadeOut(() => msg.remove()), 3000);
+        }
+
+        function discardAndRedirect() {
+            if (confirm('Discard all changes? Unsaved data will be lost.')) {
+                window.location.href = "{{ url_for('driver.list_drivers') }}";
+            }
+        }
+
+        // Top Discard button
+        $('#btnDiscardTop').on('click', function (e) {
+            e.preventDefault();
+            discardAndRedirect();
+        });
+
+        // Bottom Reset Form button
+        $('#btnDiscardForm').on('click', function (e) {
+            e.preventDefault();
+            resetForm();
+        });
+
+        // Save button handlers
+        $('#btnSaveTop, #submitBtnFooter').on('click', function (e) {
+            const form = $('#advanceForm');
+            if (form[0].checkValidity()) {
+                const btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+                form.submit();
+            } else {
+                form[0].reportValidity();
+            }
+        });
+
+        // Delete modal
+        $('.o_btn_delete').on('click', function (e) {
+            e.preventDefault();
+            const itemId = $(this).data('id');
+            const itemName = $(this).data('name');
+            $('#deleteItemDisplay').text(itemName);
+            $('#confirmDeleteBtn').attr('href', `/advance/delete/${itemId}`);
+            $('#deleteConfirmModal').modal('show');
+        });
+
+        // Table filters
+        $('#showAllPending').on('click', function () {
+            $(this).addClass('active').siblings().removeClass('active');
+            const table = $('#pendingTable').DataTable();
+            table.column(3).search('').draw();
+        });
+
+        $('#showHighValue').on('click', function () {
+            $(this).addClass('active').siblings().removeClass('active');
+            const table = $('#pendingTable').DataTable();
+            table.column(3).search('^[0-9]{5,}', true, false).draw();
+        });
+
+        $('#showAllHistory').on('click', function () {
+            $(this).addClass('active').siblings().removeClass('active');
+            const table = $('#historyTable').DataTable();
+            table.column(5).search('').draw();
+        });
+
+        $('#showDeducted').on('click', function () {
+            $(this).addClass('active').siblings().removeClass('active');
+            const table = $('#historyTable').DataTable();
+            table.column(5).search('Deducted', false, false).draw();
+        });
+    });
+</script>
+{% endblock %}

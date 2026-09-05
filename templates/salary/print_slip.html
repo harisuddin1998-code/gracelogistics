@@ -1,0 +1,365 @@
+{% extends "base_print.html" %}
+{% block content %}
+<div class="salary-slip-container grace-logistics">
+    <!-- Company Header - GRACE LOGISTICS -->
+    <div class="slip-header">
+        <div class="company-logo">
+            <i class="fas fa-truck-moving"></i>
+        </div>
+        <div class="company-details">
+            <h2>GRACE LOGISTICS</h2>
+            <p>Fleet Management & Payroll Division</p>
+            <p class="slip-title">SALARY SLIP</p>
+        </div>
+    </div>
+
+    <!-- Employee Information -->
+    <div class="employee-info">
+        <div class="info-row">
+            <span class="label">Employee Name:</span>
+            <span class="value">{{ salary.full_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Salary Month:</span>
+            <span class="value">{{ salary.month }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Payment Date:</span>
+            <span class="value">{{ salary.payment_date }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Payment Method:</span>
+            <span class="value">{{ salary.payment_method }}</span>
+        </div>
+    </div>
+
+    <!-- Earnings & Deductions Table -->
+    <div class="slip-table">
+        <table class="o_data_table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th class="text-right">Amount (PKR)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="earning-row">
+                    <td>Base Salary</td>
+                    <td class="text-right">{{ "{:,.2f}".format(salary.base_salary) }}</td>
+                </tr>
+                <tr class="earning-row bonus-row">
+                    <td>Bonus</td>
+                    <td class="text-right text-success">+ {{ "{:,.2f}".format(salary.bonus) }}</td>
+                </tr>
+                <tr class="deduction-row">
+                    <td>Advance Deduction</td>
+                    <td class="text-right text-danger">- {{ "{:,.2f}".format(salary.advance_deduction) }}</td>
+                </tr>
+                <tr class="deduction-row">
+                    <td>Penalty</td>
+                    <td class="text-right text-danger">- {{ "{:,.2f}".format(salary.penalty) }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>NET PAYABLE</strong></td>
+                    <td class="text-right"><strong>PKR {{ "{:,.2f}".format(salary.net_payable) }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Amount in Words -->
+    <div class="amount-words">
+        <span class="label">Amount in Words:</span>
+        <span class="value">{{ amount_in_words }} Rupees Only</span>
+    </div>
+
+    <!-- Footer Signatures -->
+    <div class="slip-footer">
+        <div class="signature">
+            <span>_________________________</span>
+            <p>Employee Signature</p>
+        </div>
+        <div class="signature">
+            <span>_________________________</span>
+            <p>Authorized Signatory</p>
+        </div>
+    </div>
+
+    <div class="print-footer">
+        <i class="fas fa-print"></i> This is a computer generated salary slip – valid without signature
+    </div>
+</div>
+
+<style>
+    /* Global & Print Styles */
+    @media print {
+        body {
+            background: white;
+            padding: 0;
+            margin: 0;
+        }
+        .salary-slip-container {
+            margin: 0;
+            padding: 0.5in;
+            box-shadow: none;
+            border-radius: 0;
+        }
+        .no-print, .o_control_panel, .btn, .action-buttons {
+            display: none;
+        }
+    }
+
+    :root {
+        --grace-primary: #1E3A8A;      /* Deep corporate blue */
+        --grace-primary-light: #3B82F6;
+        --grace-border: #E9EDF2;
+        --grace-text: #1F2A44;
+        --grace-text-light: #5A6E8A;
+        --grace-bg-soft: #F0F9FF;
+        --grace-success: #0A6E43;
+        --grace-danger: #B91C1C;
+    }
+
+    body {
+        font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: #F3F6FC;
+        margin: 0;
+        padding: 2rem;
+    }
+
+    .salary-slip-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        border: 1px solid var(--grace-border);
+    }
+
+    /* Header */
+    .slip-header {
+        text-align: center;
+        border-bottom: 2px solid var(--grace-primary);
+        padding-bottom: 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+    .company-logo i {
+        font-size: 3rem;
+        color: var(--grace-primary);
+    }
+    .company-details h2 {
+        margin: 0.5rem 0 0.2rem;
+        color: var(--grace-primary);
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+    .company-details p {
+        margin: 0.2rem 0;
+        color: var(--grace-text-light);
+        font-size: 0.85rem;
+    }
+    .slip-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-top: 0.5rem;
+        color: var(--grace-primary);
+        background: #EFF6FF;
+        display: inline-block;
+        padding: 0.2rem 1.2rem;
+        border-radius: 40px;
+    }
+
+    /* Employee Info Grid */
+    .employee-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem 1.5rem;
+        background: #F9FBFE;
+        padding: 1rem 1.2rem;
+        border-radius: 18px;
+        margin-bottom: 1.8rem;
+        border: 1px solid var(--grace-border);
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 1px dashed var(--grace-border);
+        padding: 0.4rem 0;
+    }
+    .info-row .label {
+        font-weight: 600;
+        color: var(--grace-text-light);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .info-row .value {
+        font-weight: 500;
+        color: var(--grace-text);
+        font-size: 0.9rem;
+    }
+
+    /* Table Styles */
+    .slip-table {
+        margin: 1.5rem 0;
+    }
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .o_data_table th, .o_data_table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid var(--grace-border);
+    }
+    .o_data_table th {
+        background: #F9FBFE;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--grace-text-light);
+        font-weight: 700;
+    }
+    .text-right {
+        text-align: right;
+    }
+    .text-success {
+        color: var(--grace-success);
+        font-weight: 500;
+    }
+    .text-danger {
+        color: var(--grace-danger);
+        font-weight: 500;
+    }
+    .total-row {
+        font-weight: 700;
+        background: #F8FAFE;
+        border-top: 2px solid var(--grace-primary);
+    }
+    .total-row td {
+        padding: 0.8rem 0.5rem;
+    }
+
+    /* Amount in Words */
+    .amount-words {
+        background: var(--grace-bg-soft);
+        padding: 0.7rem 1rem;
+        border-radius: 14px;
+        margin: 1.2rem 0;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        border-left: 4px solid var(--grace-primary);
+        align-items: center;
+    }
+    .amount-words .label {
+        font-weight: 600;
+        color: var(--grace-text-light);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+    .amount-words .value {
+        font-weight: 600;
+        color: var(--grace-primary);
+        font-size: 0.9rem;
+    }
+
+    /* Footer Signatures */
+    .slip-footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--grace-border);
+    }
+    .signature {
+        text-align: center;
+        flex: 1;
+    }
+    .signature span {
+        display: inline-block;
+        width: 80%;
+        border-top: 1px solid #4B5563;
+        margin-bottom: 0.6rem;
+        padding-top: 0.3rem;
+    }
+    .signature p {
+        margin: 0;
+        font-size: 0.7rem;
+        color: var(--grace-text-light);
+    }
+
+    /* Print footer */
+    .print-footer {
+        text-align: center;
+        margin-top: 1.2rem;
+        font-size: 0.65rem;
+        color: var(--grace-text-light);
+        border-top: 1px dashed var(--grace-border);
+        padding-top: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+        .employee-info {
+            grid-template-columns: 1fr;
+        }
+        .slip-footer {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .salary-slip-container {
+            padding: 1.2rem;
+        }
+    }
+</style>
+
+<script>
+    // Backup: ensure amount in words is correct (if backend doesn't provide it)
+    (function() {
+        const wordsSpan = document.querySelector('.amount-words .value');
+        if (wordsSpan && wordsSpan.innerText.trim().indexOf('Rupees') === -1) {
+            const netElem = document.querySelector('.total-row td:nth-child(2)');
+            if (netElem) {
+                let amountText = netElem.innerText.replace(/[^0-9.-]/g, '');
+                let amount = parseFloat(amountText);
+                if (!isNaN(amount)) {
+                    // Simple number to words utility
+                    function numberToWords(num) {
+                        if (num === 0) return 'Zero';
+                        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+                                      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+                        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+                        const thousands = ['', 'Thousand', 'Million', 'Billion'];
+                        function convertChunk(n) {
+                            if (n === 0) return '';
+                            if (n < 20) return ones[n] + ' ';
+                            return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '') + ' ';
+                        }
+                        let words = '';
+                        let i = 0;
+                        let n = Math.floor(num);
+                        while (n > 0) {
+                            let chunk = n % 1000;
+                            if (chunk !== 0) {
+                                words = convertChunk(chunk) + thousands[i] + ' ' + words;
+                            }
+                            n = Math.floor(n / 1000);
+                            i++;
+                        }
+                        return words.trim();
+                    }
+                    wordsSpan.innerText = numberToWords(Math.floor(amount)) + ' Rupees Only';
+                }
+            }
+        }
+    })();
+</script>
+{% endblock %}

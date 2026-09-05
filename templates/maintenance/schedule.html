@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-schedule-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Maintenance</a></li>
+                    <li class="breadcrumb-item active">Schedule</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshSchedule">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-calendar-alt me-2"></i> Preventive Maintenance Schedule
+            <span class="o_header_badge">Plan & track services</span>
+        </div>
+        <div class="o_card_body">
+            <!-- Add Schedule Form (Odoo style) -->
+            <div class="o_form_section">
+                <div class="o_section_title">
+                    <i class="fas fa-plus-circle"></i> New Schedule
+                </div>
+                <form method="POST" action="{{ url_for('maintenance.schedule') }}" class="o_form">
+                    <div class="o_form_grid o_grid_4cols">
+                        <div class="o_field_group">
+                            <label class="o_form_label">Vehicle <span class="o_required">*</span></label>
+                            <select name="vehicle_id" class="o_select" required>
+                                <option value="">Select Vehicle</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.vehicle_id }}">{{ v.registration_no }} – {{ v.make }} {{ v.model }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="o_field_group">
+                            <label class="o_form_label">Maintenance Type <span class="o_required">*</span></label>
+                            <select name="maintenance_type" class="o_select" required>
+                                <option value="Oil Change">🛢️ Oil Change</option>
+                                <option value="Air Filter">🌬️ Air Filter</option>
+                                <option value="Oil Filter">🔧 Oil Filter</option>
+                                <option value="Fuel Filter">⛽ Fuel Filter</option>
+                                <option value="Tire Rotation">🔄 Tire Rotation</option>
+                                <option value="Brake Pad">🛑 Brake Pad</option>
+                                <option value="Tuning">⚡ Tuning</option>
+                                <option value="Electrical Work">🔌 Electrical Work</option>
+                                <option value="Body Work">🎨 Body Work</option>
+                                <option value="Tire Change">🛞 Tire Change</option>
+                            </select>
+                        </div>
+                        <div class="o_field_group">
+                            <label class="o_form_label">Scheduled Date</label>
+                            <div class="o_input_wrapper">
+                                <i class="fas fa-calendar-day o_field_icon"></i>
+                                <input type="date" name="scheduled_date" class="o_input" value="{{ today }}">
+                            </div>
+                        </div>
+                        <div class="o_field_group">
+                            <label class="o_form_label">Scheduled KM</label>
+                            <div class="o_input_wrapper">
+                                <i class="fas fa-tachometer-alt o_field_icon"></i>
+                                <input type="number" name="scheduled_km" class="o_input" placeholder="e.g., 5000">
+                            </div>
+                        </div>
+                        <div class="o_field_group">
+                            <label class="o_form_label">Assigned To</label>
+                            <input type="text" name="assigned_to" class="o_input" placeholder="Mechanic / Technician">
+                        </div>
+                        <div class="o_field_group o_full_width">
+                            <label class="o_form_label">Notes</label>
+                            <input type="text" name="notes" class="o_input" placeholder="Additional information">
+                        </div>
+                    </div>
+                    <div class="o_form_actions_small">
+                        <button type="submit" class="o_btn_primary_small"><i class="fas fa-save"></i> Add Schedule</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Schedules List -->
+            <div class="o_table_section mt-4">
+                <div class="o_section_title">
+                    <i class="fas fa-tasks"></i> Upcoming & Pending Schedules
+                </div>
+                <div class="table-responsive">
+                    <table class="o_data_table o_data_table_hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Vehicle</th>
+                                <th>Maintenance Type</th>
+                                <th>Scheduled Date</th>
+                                <th>Scheduled KM</th>
+                                <th>Status</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules %}
+                            <tr class="o_data_row {% if schedule.status == 'Overdue' %}o_row_overdue{% elif schedule.status == 'Pending' %}o_row_pending{% endif %}">
+                                <td><span class="o_id_badge">#{{ schedule.schedule_id }}</span></td>
+                                <td>
+                                    <div class="o_vehicle_cell">
+                                        <strong>{{ schedule.registration_no }}</strong>
+                                        <small class="text-muted">{{ schedule.make }} {{ schedule.model }}</small>
+                                    </div>
+                                </td>
+                                <td>{{ schedule.maintenance_type }}</td>
+                                <td>
+                                    {% if schedule.scheduled_date %}
+                                    <span class="o_date_cell">{{ schedule.scheduled_date }}</span>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td>{{ schedule.scheduled_km|default('—') }} km</td>
+                                <td>
+                                    {% if schedule.status == 'Pending' %}
+                                        <span class="o_status_badge o_status_pending"><i class="fas fa-clock me-1"></i> Pending</span>
+                                    {% elif schedule.status == 'Completed' %}
+                                        <span class="o_status_badge o_status_completed"><i class="fas fa-check-circle me-1"></i> Completed</span>
+                                    {% elif schedule.status == 'Overdue' %}
+                                        <span class="o_status_badge o_status_overdue"><i class="fas fa-exclamation-triangle me-1"></i> Overdue</span>
+                                    {% else %}
+                                        <span class="o_status_badge o_status_default">{{ schedule.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ schedule.assigned_to|default('—') }}</td>
+                                <td class="o_actions_cell">
+                                    {% if schedule.status == 'Pending' or schedule.status == 'Overdue' %}
+                                        <a href="{{ url_for('maintenance.complete_schedule', schedule_id=schedule.schedule_id) }}" 
+                                           class="o_action_btn o_action_complete" 
+                                           onclick="return confirm('Mark this schedule as completed?')">
+                                            <i class="fas fa-check"></i> Complete
+                                        </a>
+                                        <a href="{{ url_for('maintenance.cancel_schedule', schedule_id=schedule.schedule_id) }}" 
+                                           class="o_action_btn o_action_cancel" 
+                                           onclick="return confirm('Cancel this schedule?')">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('maintenance.delete_schedule', schedule_id=schedule.schedule_id) }}" 
+                                       class="o_action_btn o_action_delete" 
+                                       onclick="return confirm('Delete this schedule permanently?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">No schedules found. Create your first schedule above.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Legend (Odoo info box) -->
+            <div class="o_info_box mt-4">
+                <div class="o_info_icon"><i class="fas fa-info-circle"></i></div>
+                <div class="o_info_content">
+                    <strong>Status Legend</strong>
+                    <span class="o_status_badge o_status_pending ms-2">Pending</span> – Awaiting completion
+                    <span class="o_status_badge o_status_completed ms-2">Completed</span> – Already done
+                    <span class="o_status_badge o_status_overdue ms-2">Overdue</span> – Past due date
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --pending-bg: #FFFBEB;
+        --pending-border: #FDE68A;
+        --overdue-bg: #FEF2F2;
+        --overdue-border: #FEE2E2;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-schedule-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.5rem 1.8rem;
+    }
+    /* Form Section */
+    .o_form_section {
+        background: #F9FBFE;
+        border-radius: 18px;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--odoo-border);
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_form_grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .o_grid_4cols {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .o_field_group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .o_full_width {
+        grid-column: 1 / -1;
+    }
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+    }
+    .o_required {
+        color: #DC2626;
+    }
+    .o_select, .o_input {
+        width: 100%;
+        padding: 0.6rem 0.9rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .o_input_wrapper .o_input {
+        padding-left: 2rem;
+    }
+    .o_select:focus, .o_input:focus {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    .o_form_actions_small {
+        margin-top: 0.5rem;
+        text-align: right;
+    }
+    .o_btn_primary_small {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1.2rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .o_btn_primary_small:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    /* Table Styles */
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .o_data_table thead th {
+        background: #F9FBFE;
+        padding: 0.8rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--odoo-text-light);
+        border-bottom: 1px solid var(--odoo-border);
+        text-align: left;
+    }
+    .o_data_row td {
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+    .o_data_table_hover .o_data_row:hover td {
+        background-color: #F8FAFE;
+    }
+    .o_row_pending {
+        background-color: var(--pending-bg);
+    }
+    .o_row_overdue {
+        background-color: var(--overdue-bg);
+    }
+    .o_id_badge {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        background: #EFF6FF;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+    }
+    .o_vehicle_cell {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .o_date_cell {
+        font-weight: 500;
+    }
+    /* Status Badges */
+    .o_status_badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.8rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    .o_status_pending {
+        background: #FEF3C7;
+        color: #B45309;
+    }
+    .o_status_completed {
+        background: #E3F6EF;
+        color: #0A6E43;
+    }
+    .o_status_overdue {
+        background: #FEE2E2;
+        color: #B91C1C;
+    }
+    .o_status_default {
+        background: #F1F5F9;
+        color: #475569;
+    }
+    /* Action Buttons */
+    .o_actions_cell {
+        white-space: nowrap;
+    }
+    .o_action_btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.7rem;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-decoration: none;
+        margin: 0 0.2rem;
+        transition: all 0.2s;
+    }
+    .o_action_complete {
+        background: #E3F6EF;
+        color: #0A6E43;
+        border: 1px solid #C6F0DA;
+    }
+    .o_action_complete:hover {
+        background: #0A6E43;
+        color: white;
+    }
+    .o_action_cancel {
+        background: #FEF3C7;
+        color: #B45309;
+        border: 1px solid #FDE68A;
+    }
+    .o_action_cancel:hover {
+        background: #B45309;
+        color: white;
+    }
+    .o_action_delete {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+    }
+    .o_action_delete:hover {
+        background: #B91C1C;
+        color: white;
+    }
+    /* Info Box (Legend) */
+    .o_info_box {
+        background: #F0F9FF;
+        border-radius: 14px;
+        padding: 0.8rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        border-left: 4px solid var(--odoo-primary-light);
+    }
+    .o_info_icon {
+        font-size: 1.2rem;
+        color: var(--odoo-primary);
+    }
+    .o_info_content {
+        font-size: 0.8rem;
+        color: var(--odoo-text);
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-schedule-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_form_section {
+            padding: 1rem;
+        }
+        .o_grid_4cols {
+            grid-template-columns: 1fr;
+        }
+        .o_actions_cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+        .o_data_table thead th, .o_data_row td {
+            padding: 0.6rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('refreshSchedule')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

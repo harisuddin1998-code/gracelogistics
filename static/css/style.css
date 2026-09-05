@@ -1,0 +1,77 @@
+@import url('odoo_theme.css');
+
+body {
+    background-color: var(--odoo-bg-main);
+    color: var(--odoo-text-main);
+}
+
+.card {
+    border-radius: 8px;
+    border: 1px solid var(--odoo-border-color);
+    box-shadow: var(--odoo-shadow-card);
+    margin-bottom: 20px;
+    background-color: var(--odoo-bg-card);
+}
+
+.card-header {
+    background-color: var(--odoo-bg-sheet);
+    border-bottom: 1px solid var(--odoo-border-color);
+    font-weight: 700;
+    color: var(--odoo-text-main);
+    border-radius: 8px 8px 0 0;
+}
+
+.dashboard-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.table th {
+    background-color: var(--odoo-bg-main);
+    color: var(--odoo-text-muted);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--odoo-border-color);
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.btn-print {
+    background-color: var(--odoo-purple);
+    color: white;
+    border-radius: 6px;
+    border: 1px solid var(--odoo-purple);
+}
+
+.btn-print:hover {
+    background-color: var(--odoo-purple-hover);
+    color: white;
+}
+
+@media print {
+    .o_main_navbar, #sidebar, .btn, .no-print, .o_cp_right {
+        display: none !important;
+    }
+    
+    .card, .o_form_sheet {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    body {
+        background-color: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}

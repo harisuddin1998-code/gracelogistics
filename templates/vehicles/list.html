@@ -1,0 +1,855 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-fleet-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item active">Fleet Vehicles</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple);">Vehicle Registry</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('vehicle.add_vehicle') }}" class="btn btn-odoo-primary">
+                <i class="fa-solid fa-plus me-1"></i> New Vehicle
+            </a>
+            <button type="button" class="btn btn-odoo-secondary" id="refreshView">
+                <i class="fa-solid fa-rotate me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content (Odoo Card Layout) -->
+    <div class="o_content">
+        <!-- KPI Statistics (Odoo Dashboard style) -->
+        <div class="o_dashboard_metrics">
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-primary">
+                    <i class="fas fa-truck-moving"></i>
+                </div>
+                <div class="o_metric_value">{{ vehicles|length }}</div>
+                <div class="o_metric_label">Total Vehicles</div>
+            </div>
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="o_metric_value">{{ vehicles|selectattr('status', 'equalto', 'Active')|list|length }}</div>
+                <div class="o_metric_label">Operational</div>
+            </div>
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-warning">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div class="o_metric_value">{{ vehicles|selectattr('status', 'equalto', 'Under Repair')|list|length }}</div>
+                <div class="o_metric_label">Maintenance</div>
+            </div>
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-info">
+                    <i class="fas fa-user-friends"></i>
+                </div>
+                <div class="o_metric_value">{{ vehicles|rejectattr('assigned_driver_id')|list|length }}</div>
+                <div class="o_metric_label">Unassigned</div>
+            </div>
+        </div>
+
+        <!-- Vehicle List View (Odoo List/Table View) -->
+        <div class="o_list_view card">
+            <div class="card-header o_list_header">
+                <div class="o_list_header_title">
+                    <i class="fas fa-clipboard-list me-2 text-primary"></i> Vehicle Registry
+                </div>
+                <div class="o_list_header_filters">
+                    <div class="btn-group btn-group-sm" id="statusFilterGroup">
+                        <button class="btn o_filter_btn active" data-status="all">All</button>
+                        <button class="btn o_filter_btn" data-status="Active">Active</button>
+                        <button class="btn o_filter_btn" data-status="Under Repair">Maintenance</button>
+                        <button class="btn o_filter_btn" data-status="Retired">Retired</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive o_list_table">
+                    <table class="o_data_table" id="vehiclesTable" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 12%;">Registration</th>
+                                <th class="text-center" style="width: 10%;">Status</th>
+                                <th style="width: 36%;">Vehicle Model & Specs</th>
+                                <th style="width: 16%;">Odometer</th>
+                                <th style="width: 18%;">Assigned Driver</th>
+                                <th class="text-end" style="width: 8%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vehicle in vehicles %}
+                            <tr class="o_data_row">
+                                <td class="o_reg_number text-nowrap">
+                                    <span class="fw-semibold text-muted me-1" style="font-size: 0.76rem;">#VH-{{ vehicle.vehicle_id }}</span>
+                                    <span class="o_reg_badge">{{ vehicle.registration_no|upper }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if vehicle.status == 'Active' %}
+                                    <span class="o_status_badge o_status_success">Active</span>
+                                    {% elif vehicle.status == 'Under Repair' %}
+                                    <span class="o_status_badge o_status_warning">Repair</span>
+                                    {% else %}
+                                    <span class="o_status_badge o_status_muted">Retired</span>
+                                    {% endif %}
+                                </td>
+                                <td class="o_vehicle_model">
+                                    <div class="d-flex align-items-center gap-2 text-nowrap">
+                                        <span class="fw-semibold text-dark" style="font-size: 0.85rem;">{{ vehicle.make }} {{ vehicle.model }}</span>
+                                        <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.7rem;"><i class="fa-regular fa-calendar me-1"></i>{{ vehicle.year }}</span>
+                                        <span class="badge o_status_purple px-2 py-1" style="font-size: 0.7rem;"><i class="fa-solid fa-gas-pump me-1"></i>{{ vehicle.fuel_type }}</span>
+                                        {% if vehicle.transmission %}
+                                        <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.7rem;"><i class="fa-solid fa-gear me-1"></i>{{ vehicle.transmission }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="o_odometer_cell text-number">
+                                    <div class="fw-semibold text-dark"><i class="fa-solid fa-gauge me-1 text-muted"></i>{{ "{:,}".format(vehicle.current_odometer) }} km</div>
+                                </td>
+                                <td>
+                                    {% if vehicle.driver_name %}
+                                    <span class="fw-semibold text-dark"><i class="fa-solid fa-user me-1 text-muted"></i>{{ vehicle.driver_name }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="o_action_btns">
+                                        <a href="{{ url_for('vehicle.edit_vehicle', vehicle_id=vehicle.vehicle_id) }}" class="o_icon_btn" title="Edit Vehicle">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <button class="o_icon_btn o_icon_rose o_btn_delete_vehicle" data-id="{{ vehicle.vehicle_id }}" data-reg="{{ vehicle.registration_no }}" title="Delete Vehicle">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer o_list_footer">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="o_footer_info">
+                        <i class="fas fa-database me-1"></i> <strong>{{ vehicles|length }}</strong> record(s) | Last synchronized: <span id="lastSyncTime">just now</span>
+                    </div>
+                    <div class="o_footer_export">
+                        <button class="btn btn-sm btn-link text-primary" id="exportTableBtn">
+                            <i class="fas fa-download me-1"></i> Export list
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo-style Delete Confirmation Modal -->
+<div class="modal fade o_modal" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content o_modal_content">
+            <div class="modal-body text-center p-4">
+                <div class="o_modal_icon">
+                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
+                </div>
+                <h5 class="fw-bold mt-3">Permanent Deletion</h5>
+                <p class="text-muted">You are about to permanently delete the vehicle</p>
+                <div class="o_modal_reg_display" id="deleteRegDisplay"></div>
+                <p class="small text-muted mt-3">This action cannot be undone. All associated service records and costs will also be removed.</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-secondary o_btn_cancel" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteBtn" href="#" class="btn btn-danger o_btn_danger">Delete Permanently</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Style (White & Blue Theme) Enhanced with Colorful Badges -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E4E9F2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --odoo-hover: #F8FAFE;
+        --odoo-success: #0A6E43;
+        --odoo-warning: #C17B0E;
+        --odoo-danger: #DC2626;
+    }
+
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* Odoo Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .o_cp_left {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.9rem;
+    }
+
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+
+    .o_cp_stat_info .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.3rem 0.7rem;
+    }
+
+    .o_cp_button {
+        border-radius: 6px;
+        font-weight: 500;
+        padding: 0.5rem 1.2rem;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+
+    .btn-primary.o_cp_button {
+        background: var(--odoo-primary);
+        border-color: var(--odoo-primary);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .btn-primary.o_cp_button:hover {
+        background: #15316D;
+        border-color: #15316D;
+        transform: translateY(-1px);
+    }
+
+    /* Main content */
+    .odoo-fleet-container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem;
+    }
+
+    /* Dashboard metrics grid */
+    .o_dashboard_metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .o_metric_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        padding: 1.3rem 1rem;
+        flex: 1 1 200px;
+        text-align: center;
+        border: 1px solid var(--odoo-border);
+        transition: all 0.2s ease;
+    }
+
+    .o_metric_card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+
+    .o_metric_icon {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.5rem;
+    }
+
+    .bg-soft-primary { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-info { background: #E8F3FE; color: #1E6F9F; }
+
+    .o_metric_value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--odoo-text);
+        line-height: 1.2;
+    }
+
+    .o_metric_label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--odoo-text-light);
+        letter-spacing: 0.5px;
+        margin-top: 0.25rem;
+    }
+
+    /* List View Card (Odoo style) */
+    .o_list_view {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03);
+        overflow-x: auto;
+        transition: box-shadow 0.2s;
+    }
+
+    .o_list_view:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    }
+
+    .card-header.o_list_header {
+        background: var(--odoo-card-bg);
+        border-bottom: 1px solid var(--odoo-border);
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .o_list_header_title {
+        font-weight: 600;
+        color: var(--odoo-text);
+        font-size: 1rem;
+    }
+
+    .o_filter_btn {
+        background: transparent;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text-light);
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.35rem 1.2rem;
+        border-radius: 40px;
+        margin: 0 0.2rem;
+        transition: all 0.2s;
+    }
+
+    .o_filter_btn.active, .o_filter_btn:hover {
+        background: var(--odoo-primary);
+        border-color: var(--odoo-primary);
+        color: white;
+    }
+
+    /* DataTable customizations */
+    .o_list_table .table {
+        margin-bottom: 0;
+        min-width: 950px;
+    }
+
+    .o_list_table thead th {
+        background: #F9FBFE;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--odoo-text-light);
+        padding: 1rem 1rem;
+        white-space: nowrap;
+    }
+
+    .o_data_row td {
+        padding: 1rem 1rem;
+        vertical-align: middle;
+        border-top: none;
+        border-bottom: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+    }
+
+    .o_data_row:hover td {
+        background-color: var(--odoo-hover);
+    }
+
+    /* Colorful Badge Styles for Vehicle Specifications */
+    .o-year-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 500;
+        border: none;
+    }
+    
+    .o-fuel-badge {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        font-weight: 500;
+        border: none;
+    }
+    
+    .o-transmission-badge {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        font-weight: 500;
+        border: none;
+    }
+    
+    .o-engine-badge {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: #1a3c2c;
+        font-weight: 500;
+        border: none;
+    }
+    
+    .o-color-badge {
+        font-weight: 500;
+        border: 1px solid rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    
+    .o-color-badge:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .o_specs .badge {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.8rem;
+        border-radius: 20px;
+        transition: all 0.2s;
+    }
+    
+    .o_specs .badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .o_specs .badge i {
+        font-size: 0.7rem;
+        margin-right: 0.25rem;
+    }
+
+    .o_reg_badge {
+        font-weight: 700;
+        color: var(--odoo-primary);
+        background: #EFF6FF;
+        display: inline-block;
+        padding: 0.25rem 0.9rem;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        border: 1px solid rgba(30,58,138,0.1);
+    }
+
+    .o_odometer_value {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .o_odometer_cell {
+        background-color: #FEFEFE;
+    }
+
+    .o_driver_avatar {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .o_avatar_initials {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #EFF6FF 0%, #E3EDFC 100%);
+        color: var(--odoo-primary);
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+
+    .o_driver_info {
+        min-width: 130px;
+    }
+
+    .o_driver_name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: block;
+        color: var(--odoo-text);
+    }
+
+    /* Status badges Odoo-like */
+    .o_status_badge {
+        padding: 0.35rem 1rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+    }
+
+    .o_status_active {
+        background: #E3F6EF;
+        color: #0A6E43;
+        border: 1px solid #B8E0D0;
+    }
+    .o_status_repair {
+        background: #FFF3E0;
+        color: #C17B0E;
+        border: 1px solid #FEDFAA;
+    }
+    .o_status_retired {
+        background: #EEF2F9;
+        color: #5B6E8C;
+        border: 1px solid #DCE3EC;
+    }
+    .o_status_draft {
+        background: #F1F3F7;
+        color: #6C7A91;
+        border: 1px solid #E0E5EC;
+    }
+
+    /* Action buttons */
+    .o_actions_group {
+        display: flex;
+        gap: 0.3rem;
+        justify-content: center;
+    }
+
+    .o_btn_edit, .o_btn_delete, .o_btn_view {
+        background: transparent;
+        border: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--odoo-text-light);
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .o_btn_edit:hover {
+        background: #EFF6FF;
+        color: var(--odoo-primary);
+        transform: scale(1.05);
+    }
+
+    .o_btn_delete:hover {
+        background: #FEF2F2;
+        color: var(--odoo-danger);
+        transform: scale(1.05);
+    }
+
+    .o_btn_view:hover {
+        background: #E6F7EC;
+        color: var(--odoo-success);
+        transform: scale(1.05);
+    }
+
+    /* Table footer */
+    .o_list_footer {
+        background: var(--odoo-card-bg);
+        border-top: 1px solid var(--odoo-border);
+        padding: 0.8rem 1.5rem;
+        font-size: 0.75rem;
+        color: var(--odoo-text-light);
+    }
+
+    /* Modal adjustments */
+    .o_modal_content {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
+    }
+
+    .o_modal_icon {
+        background: #FEF2F2;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .o_modal_reg_display {
+        background: #F1F5F9;
+        display: inline-block;
+        padding: 0.4rem 1.2rem;
+        border-radius: 40px;
+        font-weight: 600;
+        margin-top: 0.75rem;
+        font-size: 1rem;
+        color: var(--odoo-primary);
+    }
+
+    /* DataTables override for better readability */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        border-radius: 40px;
+        border: 1px solid var(--odoo-border);
+        padding: 0.5rem 1rem 0.5rem 2.5rem;
+        background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23909CB1' stroke-width='2'%3E%3Ccircle cx='10.5' cy='10.5' r='7.5'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='15.8' y2='15.8'%3E%3C/line%3E%3C/svg%3E") no-repeat left 1rem center;
+        background-size: 14px;
+        width: 280px;
+        font-size: 0.85rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter input:focus {
+        border-color: var(--odoo-primary-light);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border-radius: 30px !important;
+        margin: 0 2px;
+        padding: 0.3rem 0.8rem;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: var(--odoo-primary) !important;
+        border-color: var(--odoo-primary) !important;
+        border-radius: 30px !important;
+        color: white !important;
+    }
+
+    /* Ensure all text is visible on small screens */
+    @media (max-width: 1200px) {
+        .o_list_table .table {
+            min-width: 1000px;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .o_actions_group {
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .o_driver_info {
+            min-width: auto;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .odoo-fleet-container {
+            padding: 0.5rem;
+        }
+        .o_control_panel {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        .o_cp_left {
+            justify-content: space-between;
+        }
+        .o_dashboard_metrics {
+            gap: 0.75rem;
+        }
+        .o_metric_card {
+            min-width: calc(50% - 0.75rem);
+            flex: 1;
+        }
+        .card-header.o_list_header {
+            flex-direction: column;
+            gap: 0.8rem;
+            align-items: stretch;
+        }
+        .o_list_header_filters .btn-group {
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            width: 100%;
+        }
+        .o_data_row td {
+            white-space: normal;
+        }
+    }
+
+    /* Print styles for export */
+    @media print {
+        .o_control_panel, .o_list_header_filters, .o_actions_group, .dataTables_filter, .dataTables_length, .dataTables_paginate, .o_footer_export {
+            display: none !important;
+        }
+        .o_data_table, .o_metric_card {
+            break-inside: avoid;
+        }
+    }
+
+    /* Tooltip custom */
+    .tooltip {
+        font-size: 0.7rem;
+    }
+    
+    /* Animation for badges */
+    .badge {
+        transition: all 0.2s ease;
+    }
+    
+    /* Additional visibility improvements */
+    .fw-bold.fs-6 {
+        font-size: 1rem !important;
+        color: var(--odoo-text);
+    }
+    
+    .text-primary i {
+        color: var(--odoo-primary-light);
+    }
+</style>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable with enhanced options
+        const table = $('#vehiclesTable').DataTable({
+            pageLength: 12,
+            responsive: {
+                details: {
+                    display: $.fn.dataTable.Responsive.display.modal({
+                        header: function(row) {
+                            var data = row.data();
+                            return 'Details for ' + data[0];
+                        }
+                    }),
+                    renderer: $.fn.dataTable.Responsive.renderer.tableAll()
+                }
+            },
+            order: [[0, 'asc']],
+            language: {
+                search: "",
+                searchPlaceholder: "Search by registration, model, driver...",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ vehicles",
+                infoEmpty: "No vehicles found",
+                zeroRecords: "No matching vehicles found"
+            },
+            dom: '<"top d-flex justify-content-between align-items-center flex-wrap"lf>rt<"bottom d-flex justify-content-between align-items-center flex-wrap"ip>',
+            columnDefs: [
+                { orderable: false, targets: 5 }  // Disable sorting on actions column
+            ]
+        });
+
+        // Move length and filter styling enhancements
+        $('.dataTables_filter').addClass('o_search_box');
+        $('.dataTables_length').addClass('o_page_size');
+        
+        // Set last sync time
+        const now = new Date();
+        $('#lastSyncTime').text(now.toLocaleTimeString() + ' ' + now.toLocaleDateString());
+
+        // Initialize all tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            placement: 'top'
+        });
+
+        // Status filter integration with DataTable
+        $('.o_filter_btn').on('click', function() {
+            const status = $(this).data('status');
+            $('.o_filter_btn').removeClass('active');
+            $(this).addClass('active');
+
+            if (status === 'all') {
+                table.column(4).search('').draw();
+            } else {
+                // Column index 4 = Status column - using regex for exact match with any status text
+                table.column(4).search('\\b' + status + '\\b', true, false).draw();
+            }
+        });
+
+        // Delete modal (delegated for DataTables)
+        $(document).on('click', '.o_btn_delete_vehicle, .o_btn_delete', function(e) {
+            e.preventDefault();
+            const vehicleId = $(this).data('id');
+            const reg = $(this).data('reg');
+            $('#deleteRegDisplay').text(reg);
+            $('#confirmDeleteBtn').attr('href', `/vehicles/delete/${vehicleId}`);
+            $('#deleteConfirmModal').modal('show');
+        });
+
+        // Refresh button with loading indicator
+        $('#refreshView').on('click', function() {
+            const $btn = $(this);
+            const originalHtml = $btn.html();
+            $btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+            setTimeout(() => {
+                window.location.reload();
+            }, 200);
+        });
+
+        // Export table data to CSV
+        $('#exportTableBtn').on('click', function() {
+            const data = [];
+            // Get headers
+            const headers = [];
+            $('#vehiclesTable thead th').each(function(index) {
+                if (index < 5) { // Exclude actions column
+                    headers.push($(this).text().trim());
+                }
+            });
+            data.push(headers);
+            
+            // Get data rows
+            $('#vehiclesTable tbody tr').each(function() {
+                const row = [];
+                $(this).find('td').each(function(index) {
+                    if (index < 5) { // Exclude actions column
+                        // Clean up text content
+                        let text = $(this).text().trim().replace(/\s+/g, ' ');
+                        row.push(text);
+                    }
+                });
+                data.push(row);
+            });
+            
+            // Convert to CSV
+            let csvContent = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', 'fleet_vehicles_export.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+    });
+</script>
+{% endblock %}

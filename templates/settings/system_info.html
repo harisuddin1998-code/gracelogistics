@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-system-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Settings</a></li>
+                    <li class="breadcrumb-item active">System Information</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshInfo">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-info-circle me-2"></i> System Information
+            <span class="o_header_badge">Technical details</span>
+        </div>
+        <div class="o_card_body">
+            <div class="o_two_columns">
+                <!-- Left Column: System Details Table -->
+                <div class="o_system_details">
+                    <div class="o_section_title">
+                        <i class="fas fa-microchip"></i> Server & Environment
+                    </div>
+                    <div class="o_responsive_table">
+                        <table class="o_data_table o_data_table_bordered">
+                            <tbody>
+                                <tr><th>Application Name</th><td>{{ company_info.name }}</td></tr>
+                                <tr><th>Version</th><td>2.0.0</td></tr>
+                                <tr><th>Python Version</th><td>{{ system_info.python_version.split()[0] }}</td></tr>
+                                <tr><th>Platform</th><td>{{ system_info.platform }}</td></tr>
+                                <tr><th>Hostname</th><td>{{ system_info.hostname }}</td></tr>
+                                <tr><th>Database Size</th><td>{{ system_info.database_size }}</td></tr>
+                                <tr><th>Logo Status</th><td>{% if system_info.logo_exists %}✅ Uploaded{% else %}❌ Not uploaded{% endif %}</td></tr>
+                                <tr><th>Backup Count</th><td>{{ system_info.backup_count }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Column: Company Information Card -->
+                <div class="o_company_card">
+                    <div class="o_section_title">
+                        <i class="fas fa-building"></i> Company Profile
+                    </div>
+                    <div class="o_company_content">
+                        <div class="o_company_header">
+                            <i class="fas fa-truck-moving"></i>
+                            <div>
+                                <h3>{{ company_info.name }}</h3>
+                                <p>{{ company_info.slogan }}</p>
+                            </div>
+                        </div>
+                        <div class="o_company_details">
+                            {% if company_info.address %}
+                            <div><i class="fas fa-map-marker-alt"></i> {{ company_info.address }}</div>
+                            {% endif %}
+                            {% if company_info.phone %}
+                            <div><i class="fas fa-phone"></i> {{ company_info.phone }}</div>
+                            {% endif %}
+                            {% if company_info.email %}
+                            <div><i class="fas fa-envelope"></i> {{ company_info.email }}</div>
+                            {% endif %}
+                            {% if company_info.website %}
+                            <div><i class="fas fa-globe"></i> {{ company_info.website }}</div>
+                            {% endif %}
+                            {% if not company_info.address and not company_info.phone and not company_info.email and not company_info.website %}
+                            <div class="text-muted">No additional company details configured.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Section -->
+            <div class="o_actions_section">
+                <div class="o_section_title">
+                    <i class="fas fa-tools"></i> Maintenance Tools
+                </div>
+                <div class="o_action_buttons">
+                    <a href="{{ url_for('settings.backup') }}" class="o_action_btn o_action_backup">
+                        <i class="fas fa-database"></i> Backup Database
+                    </a>
+                    <a href="{{ url_for('settings.export_data') }}" class="o_action_btn o_action_export">
+                        <i class="fas fa-file-export"></i> Export Data
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Odoo Corporate Blue Styles */
+:root {
+    --odoo-primary: #1E3A8A;
+    --odoo-primary-light: #3B82F6;
+    --odoo-bg: #F3F6FC;
+    --odoo-card-bg: #FFFFFF;
+    --odoo-border: #E9EDF2;
+    --odoo-text: #1F2A44;
+    --odoo-text-light: #5A6E8A;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+}
+body {
+    background-color: var(--odoo-bg);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.odoo-system-container {
+    max-width: 1200px;
+    margin: 1.5rem auto;
+    padding: 0 1.5rem;
+}
+/* Control Panel */
+.o_control_panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.o_cp_breadcrumbs .breadcrumb {
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+}
+.breadcrumb-item a {
+    color: var(--odoo-primary);
+    text-decoration: none;
+}
+.breadcrumb-item.active {
+    color: var(--odoo-text-light);
+    font-weight: 500;
+}
+.o_cp_button {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--odoo-border);
+    background: white;
+    color: var(--odoo-text);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.o_cp_button:hover {
+    background: var(--odoo-primary);
+    color: white;
+    border-color: var(--odoo-primary);
+}
+/* Main Card */
+.o_card {
+    background: var(--odoo-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--odoo-border);
+    overflow: hidden;
+}
+.o_card_header {
+    padding: 1rem 1.8rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--odoo-text);
+    border-bottom: 1px solid var(--odoo-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    background: white;
+}
+.o_header_badge {
+    background: #F1F5F9;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.25rem 0.8rem;
+    border-radius: 30px;
+    color: #475569;
+}
+.o_card_body {
+    padding: 1.8rem;
+}
+/* Two Columns */
+.o_two_columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+.o_system_details {
+    flex: 1;
+    min-width: 260px;
+}
+.o_company_card {
+    flex: 1;
+    min-width: 260px;
+}
+/* Section Titles */
+.o_section_title {
+    font-weight: 600;
+    color: var(--odoo-primary);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    border-left: 3px solid var(--odoo-primary);
+    padding-left: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+/* Table Styles */
+.o_responsive_table {
+    overflow-x: auto;
+}
+.o_data_table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--odoo-border);
+}
+.o_data_table th, .o_data_table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--odoo-border);
+    text-align: left;
+    font-size: 0.85rem;
+}
+.o_data_table th {
+    background: #F9FBFE;
+    font-weight: 700;
+    color: var(--odoo-text-light);
+    width: 40%;
+}
+.o_data_table td {
+    color: var(--odoo-text);
+}
+.o_data_table tr:last-child th,
+.o_data_table tr:last-child td {
+    border-bottom: none;
+}
+/* Company Card */
+.o_company_content {
+    background: #F9FBFE;
+    border-radius: 16px;
+    border: 1px solid var(--odoo-border);
+    overflow: hidden;
+}
+.o_company_header {
+    background: var(--odoo-primary);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.o_company_header i {
+    font-size: 2rem;
+}
+.o_company_header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+.o_company_header p {
+    margin: 0;
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+.o_company_details {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.o_company_details div {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--odoo-text);
+}
+.o_company_details i {
+    width: 20px;
+    color: var(--odoo-primary-light);
+}
+/* Action Buttons Section */
+.o_actions_section {
+    margin-top: 1rem;
+}
+.o_action_buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+.o_action_btn {
+    padding: 0.6rem 1.5rem;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    background: white;
+    border: 1px solid var(--odoo-border);
+    color: var(--odoo-text);
+}
+.o_action_btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.o_action_backup:hover {
+    background: #EFF6FF;
+    border-color: var(--odoo-primary);
+    color: var(--odoo-primary);
+}
+.o_action_export:hover {
+    background: #E6F7EC;
+    border-color: #0A6E43;
+    color: #0A6E43;
+}
+/* Responsive */
+@media (max-width: 768px) {
+    .odoo-system-container {
+        padding: 0.5rem;
+    }
+    .o_card_body {
+        padding: 1rem;
+    }
+    .o_two_columns {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .o_action_buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .o_action_btn {
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+    document.getElementById('refreshInfo')?.addEventListener('click', () => {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

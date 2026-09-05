@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-settings-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Settings</a></li>
+                    <li class="breadcrumb-item active">Branding & Settings</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshPage">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-palette me-2"></i> Branding & Settings
+            <span class="o_header_badge">Company identity</span>
+        </div>
+        <div class="o_card_body">
+            <!-- Two-column layout for Logo and Upload -->
+            <div class="o_two_columns">
+                <!-- Current Logo Card -->
+                <div class="o_subcard">
+                    <div class="o_subcard_header bg-soft-info">
+                        <i class="fas fa-image me-2"></i> Current Company Logo
+                    </div>
+                    <div class="o_subcard_body text-center">
+                        {% if logo_exists %}
+                            <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Current Logo" class="o_current_logo">
+                            {% if logo_info %}
+                                <div class="o_logo_info">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Size: {{ logo_info.size_kb }} KB<br>
+                                    Modified: {{ logo_info.modified }}
+                                </div>
+                            {% endif %}
+                            <a href="{{ url_for('settings.remove_logo') }}" class="o_btn_danger mt-3" onclick="return confirm('Remove logo permanently?')">
+                                <i class="fas fa-trash-alt"></i> Remove Logo
+                            </a>
+                        {% else %}
+                            <div class="o_no_logo_placeholder">
+                                <i class="fas fa-image"></i>
+                                <p>No logo uploaded yet</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Upload Logo Card -->
+                <div class="o_subcard">
+                    <div class="o_subcard_header bg-soft-success">
+                        <i class="fas fa-upload me-2"></i> Upload New Logo
+                    </div>
+                    <div class="o_subcard_body">
+                        <form method="POST" enctype="multipart/form-data" action="{{ url_for('settings.upload_logo') }}">
+                            <div class="o_form_group">
+                                <label class="o_form_label">Select Logo Image</label>
+                                <input type="file" name="logo" class="o_file_input" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" required>
+                                <span class="o_field_help">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Recommended: 200x60px. Formats: PNG, JPG, GIF, SVG, WEBP. Max 5MB.
+                                </span>
+                            </div>
+                            <button type="submit" class="o_btn_primary w-100 mt-2">
+                                <i class="fas fa-upload"></i> Upload Logo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Preview Section -->
+            <div class="o_preview_section">
+                <div class="o_section_title">
+                    <i class="fas fa-eye"></i> Live Preview – How your logo appears
+                </div>
+                <div class="o_preview_grid">
+                    <div class="o_preview_card">
+                        <label class="o_preview_label">Navbar Preview</label>
+                        <div class="o_navbar_preview">
+                            <div class="o_navbar_content">
+                                {% if logo_exists %}
+                                    <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Logo" class="o_preview_logo">
+                                {% else %}
+                                    <i class="fas fa-truck-moving o_fallback_icon"></i>
+                                {% endif %}
+                                <span class="o_preview_title">{{ company_info.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_preview_card">
+                        <label class="o_preview_label">Print Preview (Reports)</label>
+                        <div class="o_print_preview">
+                            {% if logo_exists %}
+                                <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Logo" class="o_preview_logo_small">
+                            {% endif %}
+                            <div class="o_print_title">{{ company_info.name }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Section -->
+            <div class="o_actions_section">
+                <div class="o_section_title">
+                    <i class="fas fa-tools"></i> System Utilities
+                </div>
+                <div class="o_action_buttons">
+                    <a href="{{ url_for('settings.company_info') }}" class="o_action_btn o_action_company">
+                        <i class="fas fa-building"></i> Company Info
+                    </a>
+                    <a href="{{ url_for('settings.backup_database') }}" class="o_action_btn o_action_backup">
+                        <i class="fas fa-database"></i> Backup Database
+                    </a>
+                    <a href="{{ url_for('settings.export_data') }}" class="o_action_btn o_action_export">
+                        <i class="fas fa-file-export"></i> Export Data
+                    </a>
+                    <a href="{{ url_for('settings.system_info') }}" class="o_action_btn o_action_system">
+                        <i class="fas fa-info-circle"></i> System Info
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Odoo Corporate Blue Theme */
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.02);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-settings-container {
+        max-width: 1200px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.8rem;
+    }
+    /* Two columns */
+    .o_two_columns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .o_subcard {
+        flex: 1;
+        min-width: 280px;
+        background: #F9FBFE;
+        border-radius: 18px;
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_subcard_header {
+        padding: 0.8rem 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        border-bottom: 1px solid var(--odoo-border);
+        background: white;
+    }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .o_subcard_body {
+        padding: 1.2rem;
+        text-align: center;
+    }
+    .o_current_logo {
+        max-width: 180px;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .o_logo_info {
+        background: #F0F9FF;
+        font-size: 0.7rem;
+        padding: 0.5rem;
+        border-radius: 10px;
+        margin: 0.8rem 0;
+        color: var(--odoo-text-light);
+    }
+    .o_no_logo_placeholder {
+        background: #F8FAFE;
+        padding: 2rem;
+        border-radius: 14px;
+        color: #A0AEC0;
+    }
+    .o_no_logo_placeholder i {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+    .o_btn_danger {
+        display: inline-block;
+        background: #FEF2F2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+        padding: 0.4rem 1rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: 0.2s;
+    }
+    .o_btn_danger:hover {
+        background: #B91C1C;
+        color: white;
+    }
+    .o_btn_primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1rem;
+        border-radius: 40px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+    .o_btn_primary:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    .o_form_group {
+        text-align: left;
+        margin-bottom: 1rem;
+    }
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--odoo-text-light);
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+    .o_file_input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.8rem;
+        background: white;
+    }
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.3rem;
+        display: block;
+    }
+    /* Preview Section */
+    .o_preview_section {
+        margin: 1.8rem 0;
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_preview_grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .o_preview_card {
+        flex: 1;
+        min-width: 250px;
+        background: #F8FAFE;
+        padding: 0.8rem;
+        border-radius: 16px;
+        border: 1px solid var(--odoo-border);
+    }
+    .o_preview_label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--odoo-text-light);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    .o_navbar_preview {
+        background: #343A40;
+        padding: 0.8rem;
+        border-radius: 12px;
+    }
+    .o_navbar_content {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+    .o_preview_logo {
+        height: 32px;
+        width: auto;
+        object-fit: contain;
+    }
+    .o_fallback_icon {
+        font-size: 28px;
+        color: white;
+    }
+    .o_preview_title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+    }
+    .o_print_preview {
+        background: #F1F5F9;
+        padding: 0.8rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+    .o_preview_logo_small {
+        height: 32px;
+        margin-bottom: 6px;
+    }
+    .o_print_title {
+        font-weight: 700;
+        color: var(--odoo-text);
+    }
+    /* Actions Section */
+    .o_actions_section {
+        margin-top: 1rem;
+    }
+    .o_action_buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+    }
+    .o_action_btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 40px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+    }
+    .o_action_btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .o_action_company:hover { background: #EFF6FF; border-color: var(--odoo-primary); }
+    .o_action_backup:hover { background: #FEF3C7; border-color: #F59E0B; }
+    .o_action_export:hover { background: #E6F7EC; border-color: #0A6E43; }
+    .o_action_system:hover { background: #F3E8FF; border-color: #9B59B6; }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-settings-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_two_columns {
+            flex-direction: column;
+        }
+        .o_action_buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_action_btn {
+            justify-content: center;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('refreshPage')?.addEventListener('click', () => {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

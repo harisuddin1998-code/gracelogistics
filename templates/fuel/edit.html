@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-main-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('fuel.fuel_report') }}">Fuel Logs</a></li>
+                    <li class="breadcrumb-item active">Edit Fuel Log</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple, #1E3A8A);">Edit Fuel Entry #{{ entry.fuel_id }}</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('fuel.fuel_report') }}" class="btn btn-secondary me-2">
+                <i class="fa-solid fa-xmark me-1"></i> Discard
+            </a>
+            <button type="submit" form="fuelEditForm" class="btn btn-primary">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body p-4">
+            <form method="POST" id="fuelEditForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Select Vehicle <span class="text-danger">*</span></label>
+                        <select name="vehicle_id" id="vehicle_id" class="form-select" required>
+                            {% for v in vehicles %}
+                            <option value="{{ v.vehicle_id }}" {% if v.vehicle_id == entry.vehicle_id %}selected{% endif %}>
+                                {{ v.registration_no }} - {{ v.make }} {{ v.model }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="date" class="form-control" value="{{ entry.date }}" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Liters <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="liters" id="liters" class="form-control" value="{{ entry.liters }}" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Cost per Liter (PKR) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter" class="form-control" value="{{ entry.cost_per_liter }}" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Total Cost (PKR)</label>
+                        <input type="text" id="totalCost" class="form-control bg-light fw-bold" value="PKR {{ '{:,.2f}'.format(entry.total_cost) }}" readonly>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Odometer Reading (km) <span class="text-danger">*</span></label>
+                        <input type="number" name="odometer_reading" class="form-control" value="{{ entry.odometer_reading }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Fuel Station</label>
+                        <input type="text" name="fuel_station" class="form-control" value="{{ entry.fuel_station or '' }}" placeholder="e.g., Shell, PSO, Total">
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a href="{{ url_for('fuel.delete_fuel', fuel_id=entry.fuel_id) }}" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this fuel record?');">
+                        <i class="fa-solid fa-trash me-1"></i> Delete Entry
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('fuel.fuel_report') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const litersInput = document.getElementById('liters');
+    const costInput = document.getElementById('costPerLiter');
+    const totalInput = document.getElementById('totalCost');
+
+    function calculateTotal() {
+        const liters = parseFloat(litersInput.value) || 0;
+        const cost = parseFloat(costInput.value) || 0;
+        const total = liters * cost;
+        totalInput.value = 'PKR ' + total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    litersInput.addEventListener('input', calculateTotal);
+    costInput.addEventListener('input', calculateTotal);
+});
+</script>
+{% endblock %}

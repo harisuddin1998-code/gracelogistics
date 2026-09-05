@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-expense-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Inventory</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('expense.inventory') }}">Spare Parts</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('expense.expense_history') }}">Expenses</a></li>
+                    <li class="breadcrumb-item active">New Expense</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('expense.expense_history') }}" class="btn btn-outline-secondary o_cp_button">
+                    <i class="fas fa-history"></i> History
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshForm">
+                    <i class="fas fa-sync-alt"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-microchip me-2"></i> Register Spare Parts Expense
+            <span class="o_header_badge">Consumption entry</span>
+        </div>
+        <div class="o_card_body">
+            <form method="POST" class="o_form" id="expenseForm">
+                <!-- Two-column grid layout -->
+                <div class="o_form_grid o_grid_2cols">
+                    <div class="o_field_group">
+                        <label class="o_form_label">Vehicle <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-truck o_field_icon"></i>
+                            <select name="vehicle_id" class="o_select" required>
+                                <option value="">Select Vehicle</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.vehicle_id }}">{{ v.registration_no }} - {{ v.make }} {{ v.model }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Spare Part <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-cog o_field_icon"></i>
+                            <select name="part_id" id="part_id" class="o_select" required>
+                                <option value="">Select Part</option>
+                                {% for p in inventory %}
+                                <option value="{{ p.part_id }}" data-price="{{ p.unit_cost }}" data-stock="{{ p.quantity_in_stock }}">
+                                    {{ p.part_name }} ({{ p.part_number }}) - Stock: {{ p.quantity_in_stock }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Vendor</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-store o_field_icon"></i>
+                            <select name="vendor_id" class="o_select">
+                                <option value="">Select Vendor</option>
+                                {% for v in vendors %}
+                                <option value="{{ v.vendor_id }}">{{ v.vendor_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Date <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-calendar-alt o_field_icon"></i>
+                            <input type="date" name="date" class="o_input" value="{{ today }}" required>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Quantity Used <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-boxes o_field_icon"></i>
+                            <input type="number" name="quantity_used" id="quantity_used" class="o_input" min="1" required>
+                        </div>
+                        <span class="o_field_help">Available stock: <span id="stock_available">0</span> units</span>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Unit Price (PKR)</label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="text" id="unit_price" class="o_input_currency_field" readonly placeholder="Auto-filled">
+                        </div>
+                        <span class="o_field_help">Taken from part cost</span>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Total Cost (PKR)</label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="text" id="total_cost" class="o_input_currency_field" readonly placeholder="Calculated">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Mechanic Name</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-user-cog o_field_icon"></i>
+                            <input type="text" name="mechanic_name" class="o_input" placeholder="Responsible technician">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Warranty Until</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-calendar-check o_field_icon"></i>
+                            <input type="date" name="warranty_until" class="o_input">
+                        </div>
+                    </div>
+                    <div class="o_field_group o_full_width">
+                        <label class="o_form_label">Failure Reason</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-exclamation-triangle o_field_icon"></i>
+                            <textarea name="failure_reason" class="o_input" rows="2" placeholder="Why was the part replaced?"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="o_form_actions">
+                    <button type="submit" class="o_btn_primary"><i class="fas fa-save"></i> Record Expense</button>
+                    <a href="{{ url_for('expense.expense_history') }}" class="o_btn_secondary"><i class="fas fa-history"></i> View History</a>
+                    <button type="reset" class="o_btn_link">Clear Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-expense-container {
+        max-width: 1200px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.8rem;
+    }
+    /* Form Grid */
+    .o_form_grid {
+        display: grid;
+        gap: 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+    .o_grid_2cols {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .o_field_group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .o_full_width {
+        grid-column: 1 / -1;
+    }
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+    }
+    .o_required {
+        color: #DC2626;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .o_input, .o_select {
+        width: 100%;
+        padding: 0.65rem 0.9rem 0.65rem 2.2rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    .o_select {
+        padding-left: 2.2rem;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6E8A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+    }
+    .o_input:focus, .o_select:focus {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        background: white;
+        padding-left: 0.5rem;
+    }
+    .o_input_currency .o_currency_symbol {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+        padding-right: 0.3rem;
+    }
+    .o_input_currency_field {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+        font-size: 0.85rem;
+    }
+    textarea.o_input {
+        padding-top: 0.65rem;
+        resize: vertical;
+        min-height: 70px;
+    }
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    /* Form Actions */
+    .o_form_actions {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        border-top: 1px solid var(--odoo-border);
+        padding-top: 1.5rem;
+    }
+    .o_btn_primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_btn_primary:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    .o_btn_secondary {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_btn_secondary:hover {
+        background: #F1F5F9;
+    }
+    .o_btn_link {
+        background: transparent;
+        color: var(--odoo-primary-light);
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        margin-left: auto;
+        font-size: 0.8rem;
+    }
+    .o_btn_link:hover {
+        color: var(--odoo-primary);
+        text-decoration: underline;
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-expense-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_form_actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_btn_link {
+            margin-left: 0;
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    (function() {
+        const partSelect = document.getElementById('part_id');
+        const quantityInput = document.getElementById('quantity_used');
+        const unitPriceField = document.getElementById('unit_price');
+        const totalCostField = document.getElementById('total_cost');
+        const stockSpan = document.getElementById('stock_available');
+        
+        function updateFromPart() {
+            const selected = partSelect.options[partSelect.selectedIndex];
+            const price = selected.getAttribute('data-price');
+            const stock = selected.getAttribute('data-stock');
+            
+            if (price) {
+                unitPriceField.value = parseFloat(price).toFixed(2);
+                stockSpan.innerText = stock;
+                quantityInput.max = stock;
+                calculateTotal();
+            } else {
+                unitPriceField.value = '';
+                stockSpan.innerText = '0';
+                quantityInput.max = '';
+                totalCostField.value = '';
+            }
+        }
+        
+        function calculateTotal() {
+            const price = parseFloat(unitPriceField.value) || 0;
+            const qty = parseInt(quantityInput.value) || 0;
+            const total = price * qty;
+            totalCostField.value = total.toFixed(2);
+            
+            const maxStock = parseInt(partSelect.options[partSelect.selectedIndex]?.getAttribute('data-stock')) || 0;
+            if (qty > maxStock && maxStock > 0) {
+                quantityInput.value = maxStock;
+                calculateTotal();
+                alert(`Only ${maxStock} items available in stock!`);
+            }
+        }
+        
+        partSelect.addEventListener('change', updateFromPart);
+        quantityInput.addEventListener('input', calculateTotal);
+        
+        // initial update if a part is pre-selected (e.g., from validation error)
+        if (partSelect.value) {
+            updateFromPart();
+        }
+        
+        // reset button clear
+        const resetBtn = document.querySelector('button[type="reset"]');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('expenseForm').reset();
+                unitPriceField.value = '';
+                totalCostField.value = '';
+                stockSpan.innerText = '0';
+            });
+        }
+        
+        const refreshBtn = document.getElementById('refreshForm');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                document.getElementById('expenseForm').reset();
+                unitPriceField.value = '';
+                totalCostField.value = '';
+                stockSpan.innerText = '0';
+            });
+        }
+    })();
+</script>
+{% endblock %}

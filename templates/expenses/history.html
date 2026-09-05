@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-expense-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Inventory</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('expense.inventory') }}">Spare Parts</a></li>
+                    <li class="breadcrumb-item active">Expense History</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('expense.inventory') }}" class="btn btn-outline-secondary o_cp_button">
+                    <i class="fas fa-boxes"></i> Back to Inventory
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshHistory">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-history me-2"></i> Spare Parts Expense History
+            <span class="o_header_badge">Part consumption log</span>
+        </div>
+        <div class="o_card_body">
+            <!-- KPI Summary -->
+            <div class="o_kpi_summary">
+                <div class="o_kpi_card_small">
+                    <div class="o_kpi_icon_small bg-soft-info">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="o_kpi_content">
+                        <span class="o_kpi_label_small">Total Expenses</span>
+                        <span class="o_kpi_value_small">PKR {{ "{:,.2f}".format(total) }}</span>
+                    </div>
+                </div>
+                <div class="o_kpi_card_small">
+                    <div class="o_kpi_icon_small bg-soft-success">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="o_kpi_content">
+                        <span class="o_kpi_label_small">Total Records</span>
+                        <span class="o_kpi_value_small">{{ expenses|length }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expenses Table -->
+            <div class="o_table_section">
+                <div class="o_section_title">
+                    <i class="fas fa-list-ul"></i> Parts Consumption Log
+                </div>
+                <div class="table-responsive">
+                    <table class="o_data_table o_data_table_hover datatable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Vehicle</th>
+                                <th>Part Name</th>
+                                <th>Qty</th>
+                                <th>Unit Price (PKR)</th>
+                                <th>Total Cost (PKR)</th>
+                                <th>Mechanic</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exp in expenses %}
+                            <tr class="o_data_row">
+                                <td><span class="o_date_badge">{{ exp.date }}</span></td>
+                                <td><strong>{{ exp.registration_no }}</strong><br><small class="text-muted">{{ exp.make }} {{ exp.model|default('') }}</small></td>
+                                <td>
+                                    <div class="o_part_cell">
+                                        <strong>{{ exp.part_name }}</strong>
+                                        <span class="o_part_number">{{ exp.part_number }}</span>
+                                    </div>
+                                </td>
+                                <td><span class="o_qty_badge">{{ exp.quantity_used }}</span></td>
+                                <td>PKR {{ "{:,.2f}".format(exp.unit_price) }}</td>
+                                <td><strong class="text-danger">PKR {{ "{:,.2f}".format(exp.total_cost) }}</strong></td>
+                                <td>{{ exp.mechanic_name|default('—') }}</td>
+                                <td class="o_actions_cell">
+                                    <a href="{{ url_for('expense.delete_expense', expense_id=exp.expense_id) }}" 
+                                       class="o_action_btn o_action_delete" 
+                                       onclick="return confirm('Delete this expense permanently?')">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">No expense records found. Parts used in maintenance will appear here.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-expense-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.5rem 1.8rem;
+    }
+    /* KPI Summary */
+    .o_kpi_summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .o_kpi_card_small {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        border-radius: 18px;
+        padding: 0.8rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+        min-width: 200px;
+        transition: all 0.2s;
+    }
+    .o_kpi_card_small:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transform: translateY(-1px);
+    }
+    .o_kpi_icon_small {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .o_kpi_content {
+        display: flex;
+        flex-direction: column;
+    }
+    .o_kpi_label_small {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--odoo-text-light);
+    }
+    .o_kpi_value_small {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--odoo-text);
+    }
+    /* Table Section */
+    .o_table_section {
+        margin-top: 0.5rem;
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .o_data_table thead th {
+        background: #F9FBFE;
+        padding: 0.8rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--odoo-text-light);
+        border-bottom: 1px solid var(--odoo-border);
+        text-align: left;
+    }
+    .o_data_row td {
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+    .o_data_table_hover .o_data_row:hover td {
+        background-color: #F8FAFE;
+    }
+    .o_date_badge {
+        font-weight: 500;
+        background: #F1F5F9;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        display: inline-block;
+    }
+    .o_part_cell {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .o_part_number {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        font-family: monospace;
+    }
+    .o_qty_badge {
+        display: inline-block;
+        font-weight: 700;
+        background: #EFF6FF;
+        padding: 0.2rem 0.6rem;
+        border-radius: 30px;
+        color: var(--odoo-primary);
+        font-size: 0.8rem;
+    }
+    /* Action Buttons */
+    .o_actions_cell {
+        white-space: nowrap;
+    }
+    .o_action_btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .o_action_delete {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+    }
+    .o_action_delete:hover {
+        background: #B91C1C;
+        color: white;
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-expense-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_kpi_card_small {
+            min-width: 100%;
+        }
+        .o_data_table thead th, .o_data_row td {
+            padding: 0.6rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .o_actions_cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('refreshHistory')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

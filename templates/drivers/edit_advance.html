@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h3><i class="fas fa-money-bill-wave"></i> Advance Salary Management</h3>
+            </div>
+            <div class="card-body">
+                
+                <!-- Add Advance Form -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="fas fa-plus"></i> Record New Advance</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('driver.advance_salary') }}">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label>Select Driver *</label>
+                                    <select name="driver_id" id="driver_id" class="form-control" required>
+                                        <option value="">-- Select Driver --</option>
+                                        {% for driver in drivers %}
+                                        <option value="{{ driver.driver_id }}" 
+                                                data-salary="{{ driver.base_salary }}"
+                                                data-balance="{{ driver.advance_balance }}">
+                                            {{ driver.full_name }} - Salary: PKR {{ "{:,.2f}".format(driver.base_salary) }}
+                                            {% if driver.advance_balance > 0 %}
+                                                | Existing Advance: PKR {{ "{:,.2f}".format(driver.advance_balance) }}
+                                            {% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Date *</label>
+                                    <input type="date" name="date" class="form-control" value="{{ today }}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Advance Amount (PKR) *</label>
+                                    <input type="number" step="0.01" name="amount" id="amount" class="form-control" required>
+                                    <small class="text-muted">Maximum recommended: <span id="max_amount">0</span> PKR (50% of salary)</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Remaining Balance (PKR)</label>
+                                    <input type="text" id="remaining_balance" class="form-control" readonly>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label>Reason *</label>
+                                    <textarea name="reason" class="form-control" rows="3" required 
+                                              placeholder="e.g., Medical emergency, Family function, Vehicle repair, Education expenses"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Record Advance</button>
+                                    <button type="reset" class="btn btn-secondary"><i class="fas fa-undo"></i> Reset</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Pending Advances Table -->
+                <h4><i class="fas fa-clock"></i> Pending Advances</h4>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-hover datatable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Driver</th>
+                                <th>Amount (PKR)</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for advance in pending_advances %}
+                            <tr>
+                                <td>{{ advance.advance_id }}</td>
+                                <td>{{ advance.date }}</td>
+                                <td><strong>{{ advance.full_name }}</strong><br><small>{{ advance.phone }}</small></td>
+                                <td class="text-danger">PKR {{ "{:,.2f}".format(advance.amount) }}</td>
+                                <td>{{ advance.reason[:50] }}{% if advance.reason|length > 50 %}...{% endif %}</td>
+                                <td>
+                                    <span class="badge bg-warning">Pending</span>
+                                    <br>
+                                    <small>Base: PKR {{ "{:,.2f}".format(advance.base_salary) }}</small>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('driver.mark_advance_deducted', advance_id=advance.advance_id) }}" 
+                                       class="btn btn-sm btn-success" 
+                                       onclick="return confirm('Mark this advance as deducted from salary?')">
+                                        <i class="fas fa-check"></i> Mark Deducted
+                                    </a>
+                                    <a href="{{ url_for('driver.edit_advance', advance_id=advance.advance_id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="{{ url_for('driver.delete_advance', advance_id=advance.advance_id) }}" 
+                                       class="btn btn-sm btn-danger" 
+                                       onclick="return confirm('Delete this advance record?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                 </td>
+                             </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No pending advances</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Advance History Table -->
+                <h4><i class="fas fa-history"></i> Advance History</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover datatable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Driver</th>
+                                <th>Amount (PKR)</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Deduction Month</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for advance in advance_history %}
+                            <tr>
+                                <td>{{ advance.advance_id }}</td>
+                                <td>{{ advance.date }}</td>
+                                <td><strong>{{ advance.full_name }}</strong></td>
+                                <td class="{% if advance.status == 'Deducted' %}text-success{% else %}text-danger{% endif %}">
+                                    PKR {{ "{:,.2f}".format(advance.amount) }}
+                                </td>
+                                <td>{{ advance.reason[:50] }}{% if advance.reason|length > 50 %}...{% endif %}</td>
+                                <td>
+                                    {% if advance.status == 'Deducted' %}
+                                        <span class="badge bg-success">Deducted</span>
+                                    {% elif advance.status == 'Paid Back' %}
+                                        <span class="badge bg-info">Paid Back</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ advance.deduction_month or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No advance history</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calculate max advance and remaining balance
+    const driverSelect = document.getElementById('driver_id');
+    const amountInput = document.getElementById('amount');
+    const maxAmountSpan = document.getElementById('max_amount');
+    const remainingSpan = document.getElementById('remaining_balance');
+    
+    driverSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const salary = parseFloat(selected.getAttribute('data-salary')) || 0;
+        const balance = parseFloat(selected.getAttribute('data-balance')) || 0;
+        const maxAdvance = salary * 0.5;
+        
+        maxAmountSpan.innerText = maxAdvance.toFixed(2);
+        remainingSpan.value = 'PKR ' + (salary - balance).toFixed(2);
+        
+        amountInput.max = maxAdvance;
+        amountInput.placeholder = `Max: ${maxAdvance.toFixed(2)}`;
+    });
+    
+    // Validate amount on input
+    amountInput.addEventListener('input', function() {
+        const max = parseFloat(this.max);
+        const value = parseFloat(this.value);
+        if (value > max) {
+            alert(`Amount cannot exceed ${max.toFixed(2)} PKR (50% of salary)`);
+            this.value = max;
+        }
+    });
+</script>
+{% endblock %}

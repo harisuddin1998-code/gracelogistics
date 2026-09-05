@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-vendor-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item active">Vendors & Suppliers</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple);">Vendor Directory</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('vendor.add_vendor') }}" class="btn btn-odoo-primary">
+                <i class="fa-solid fa-plus me-1"></i> Add Vendor
+            </a>
+        </div>
+    </div>
+
+    <!-- Odoo Data Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-building me-2 text-primary"></i>
+                <span>Registered Suppliers & Vendors</span>
+            </div>
+            <span class="badge o_status_purple">{{ vendors|length }} Vendors</span>
+        </div>
+        <div class="o_card_body p-0">
+            <div class="table-responsive">
+                <table class="o_data_table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vendor Name</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th class="text-center">Rating</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vendor in vendors %}
+                        <tr class="o_data_row">
+                            <td class="text-number fw-semibold">#{{ vendor.vendor_id }}</td>
+                            <td><strong>{{ vendor.vendor_name }}</strong></td>
+                            <td>{{ vendor.contact_person or '-' }}</td>
+                            <td class="text-number">{{ vendor.phone or '-' }}</td>
+                            <td>{{ vendor.email or '-' }}</td>
+                            <td class="text-center"><span class="badge o_status_info"><i class="fa-solid fa-star text-warning me-1"></i>{{ vendor.rating or '5.0' }}</span></td>
+                            <td class="text-center">
+                                {% if vendor.is_active %}
+                                    <span class="o_status_badge o_status_success">Active</span>
+                                {% else %}
+                                    <span class="o_status_badge o_status_danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="o_action_btns">
+                                    <a href="{{ url_for('vendor.edit_vendor', vendor_id=vendor.vendor_id) }}" class="o_icon_btn" title="Edit Vendor">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <a href="{{ url_for('vendor.delete_vendor', vendor_id=vendor.vendor_id) }}" class="o_icon_btn o_icon_rose" title="Delete Vendor" onclick="return confirm('Delete this vendor?')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

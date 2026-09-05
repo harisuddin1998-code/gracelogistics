@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - {{ APP_NAME }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Video Background Styles */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+        
+        .video-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 30px;
+            padding: 8px 15px;
+            display: flex;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .video-controls button {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .video-controls button:hover {
+            transform: scale(1.1);
+            color: #0078d4;
+        }
+        
+        /* Original Login Styles */
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 450px;
+            width: 100%;
+            margin: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .login-header h3 { 
+            margin: 0; 
+            font-weight: 600; 
+        }
+        
+        .login-body { 
+            padding: 30px; 
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+            outline: none;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            width: 100%;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-login:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4); 
+        }
+        
+        .credentials {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        /* Footer on login page */
+        .login-footer {
+            text-align: center;
+            padding: 15px;
+            border-top: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+        
+        .login-footer .heart {
+            color: #ff4444;
+            display: inline-block;
+            animation: heartbeat 1.5s ease infinite;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Background -->
+    <video id="bgVideo" class="video-background" autoplay muted loop playsinline>
+        <!-- Default stock video - Replace with your own video URL -->
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-driving-on-a-road-in-the-forest-41563-large.mp4" type="video/mp4">
+        <!-- To use your own video, add it to static/videos/ and uncomment below -->
+        <!-- <source src="{{ url_for('static', filename='videos/your-video.mp4') }}" type="video/mp4"> -->
+    </video>
+    <div class="overlay"></div>
+    
+    <!-- Video Controls -->
+    <div class="video-controls">
+        <button onclick="toggleMute()" id="muteBtn" title="Mute/Unmute">
+            <i class="fas fa-volume-mute"></i>
+        </button>
+        <button onclick="togglePlay()" id="playBtn" title="Play/Pause">
+            <i class="fas fa-pause"></i>
+        </button>
+    </div>
+    
+    <div class="login-card">
+        <div class="login-header">
+            {% if logo_exists %}
+            <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="{{ APP_NAME }}" style="height: 50px; margin-bottom: 15px;">
+            {% else %}
+            <i class="fas fa-truck-moving fa-3x mb-3"></i>
+            {% endif %}
+            <h3>{{ APP_NAME }}</h3>
+            <p class="mb-0">{{ APP_SLOGAN }}</p>
+        </div>
+        <div class="login-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt me-2"></i> Login
+                </button>
+            </form>
+        </div>
+        <div class="login-footer">
+            <small>
+                Crafted with <span class="heart">❤</span> by 
+                <a href="https://originsolutions.com" target="_blank">Origins Solutions</a>
+            </small>
+            <br>
+            <small class="text-muted">Default: admin / admin123</small>
+        </div>
+    </div>
+    
+    <script>
+        // Video controls
+        const video = document.getElementById('bgVideo');
+        let isMuted = true;
+        let isPlaying = true;
+        
+        function toggleMute() {
+            const muteBtn = document.getElementById('muteBtn');
+            if (isMuted) {
+                video.muted = false;
+                muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                isMuted = false;
+            } else {
+                video.muted = true;
+                muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                isMuted = true;
+            }
+        }
+        
+        function togglePlay() {
+            const playBtn = document.getElementById('playBtn');
+            if (isPlaying) {
+                video.pause();
+                playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                isPlaying = false;
+            } else {
+                video.play();
+                playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                isPlaying = true;
+            }
+        }
+        
+        // Auto-hide video controls
+        let controlsTimeout;
+        const controls = document.querySelector('.video-controls');
+        
+        function showControls() {
+            controls.style.opacity = '1';
+            clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => {
+                controls.style.opacity = '0';
+            }, 3000);
+        }
+        
+        document.addEventListener('mousemove', showControls);
+        showControls();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-payroll-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Payroll</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('salary.salary_history') }}">Salary History</a></li>
+                    <li class="breadcrumb-item active">Generate Salary</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('salary.salary_history') }}" class="btn btn-outline-secondary o_cp_button">
+                    <i class="fas fa-history"></i> History
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshForm">
+                    <i class="fas fa-sync-alt"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-money-check-alt me-2"></i> Generate Monthly Salary
+            <span class="o_header_badge">Individual driver payroll</span>
+        </div>
+        <div class="o_card_body">
+            <form method="POST" class="o_form" id="salaryForm">
+                <!-- Two-column grid layout -->
+                <div class="o_form_grid o_grid_2cols">
+                    <div class="o_field_group">
+                        <label class="o_form_label">Select Driver <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-user-circle o_field_icon"></i>
+                            <select name="driver_id" id="driver_id" class="o_select" required>
+                                <option value="">-- Select Driver --</option>
+                                {% for driver in drivers %}
+                                <option value="{{ driver.driver_id }}" 
+                                        data-salary="{{ driver.base_salary }}" 
+                                        data-advance="{{ driver.advance_balance }}"
+                                        data-name="{{ driver.full_name }}">
+                                    {{ driver.full_name }} - Base: PKR {{ "{:,.2f}".format(driver.base_salary) }}
+                                    {% if driver.advance_balance > 0 %}
+                                        | Pending: PKR {{ "{:,.2f}".format(driver.advance_balance) }}
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Month <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-calendar-alt o_field_icon"></i>
+                            <input type="month" name="month" class="o_input" value="{{ current_month }}" required>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Base Salary (PKR) <span class="o_required">*</span></label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="number" step="0.01" name="base_salary" id="base_salary" class="o_input_currency_field" required>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Pending Advance Deduction (PKR)</label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="number" step="0.01" name="advance_deduction" id="advance_deduction" class="o_input_currency_field" readonly>
+                        </div>
+                        <span class="o_field_help">Pending advance: <span id="pending_advance_display">0</span> PKR</span>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Bonus (PKR)</label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="number" step="0.01" name="bonus" id="bonus" class="o_input_currency_field" value="0">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Penalty (PKR)</label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="number" step="0.01" name="penalty" id="penalty" class="o_input_currency_field" value="0">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Payment Date</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-calendar-check o_field_icon"></i>
+                            <input type="date" name="payment_date" class="o_input" value="{{ current_month }}-01">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Payment Method</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-money-bill-wave o_field_icon"></i>
+                            <select name="payment_method" class="o_select">
+                                <option value="Cash">💵 Cash</option>
+                                <option value="Bank Transfer">🏦 Bank Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Payable Card (Odoo style alert) -->
+                <div class="o_net_payable_card">
+                    <div class="o_net_icon"><i class="fas fa-receipt"></i></div>
+                    <div class="o_net_content">
+                        <span class="o_net_label">Net Payable Amount</span>
+                        <span class="o_net_value" id="net_payable">0.00</span>
+                        <span class="o_net_currency">PKR</span>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="o_form_actions">
+                    <button type="submit" class="o_btn_primary"><i class="fas fa-save"></i> Generate Salary</button>
+                    <a href="{{ url_for('salary.salary_history') }}" class="o_btn_secondary"><i class="fas fa-history"></i> View History</a>
+                    <button type="reset" class="o_btn_link">Reset Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-payroll-container {
+        max-width: 1000px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.8rem;
+    }
+    /* Form Grid */
+    .o_form_grid {
+        display: grid;
+        gap: 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+    .o_grid_2cols {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .o_field_group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+    }
+    .o_required {
+        color: #DC2626;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .o_input, .o_select {
+        width: 100%;
+        padding: 0.65rem 0.9rem 0.65rem 2.2rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    .o_select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6E8A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+    }
+    .o_input:focus, .o_select:focus {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        background: white;
+        padding-left: 0.5rem;
+    }
+    .o_input_currency .o_currency_symbol {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+        padding-right: 0.3rem;
+    }
+    .o_input_currency_field {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+        font-size: 0.85rem;
+    }
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    /* Net Payable Card */
+    .o_net_payable_card {
+        background: #F0F9FF;
+        border-radius: 18px;
+        padding: 1rem 1.5rem;
+        margin: 1rem 0 1.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-left: 4px solid var(--odoo-primary);
+    }
+    .o_net_icon {
+        font-size: 2rem;
+        color: var(--odoo-primary);
+    }
+    .o_net_content {
+        flex: 1;
+    }
+    .o_net_label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--odoo-text-light);
+        display: block;
+    }
+    .o_net_value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--odoo-primary);
+        line-height: 1.2;
+    }
+    .o_net_currency {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--odoo-text-light);
+        margin-left: 0.5rem;
+    }
+    /* Form Actions */
+    .o_form_actions {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        border-top: 1px solid var(--odoo-border);
+        padding-top: 1.5rem;
+    }
+    .o_btn_primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_btn_primary:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    .o_btn_secondary {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_btn_secondary:hover {
+        background: #F1F5F9;
+    }
+    .o_btn_link {
+        background: transparent;
+        color: var(--odoo-primary-light);
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        margin-left: auto;
+        font-size: 0.8rem;
+    }
+    .o_btn_link:hover {
+        color: var(--odoo-primary);
+        text-decoration: underline;
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-payroll-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_net_payable_card {
+            flex-direction: column;
+            text-align: center;
+        }
+        .o_form_actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_btn_link {
+            margin-left: 0;
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    (function() {
+        const driverSelect = document.getElementById('driver_id');
+        const baseSalaryInput = document.getElementById('base_salary');
+        const advanceDeductionInput = document.getElementById('advance_deduction');
+        const pendingAdvanceSpan = document.getElementById('pending_advance_display');
+        const bonusInput = document.getElementById('bonus');
+        const penaltyInput = document.getElementById('penalty');
+        const netPayableSpan = document.getElementById('net_payable');
+
+        function calculateNet() {
+            let base = parseFloat(baseSalaryInput.value) || 0;
+            let advance = parseFloat(advanceDeductionInput.value) || 0;
+            let bonus = parseFloat(bonusInput.value) || 0;
+            let penalty = parseFloat(penaltyInput.value) || 0;
+            let net = base + bonus - advance - penalty;
+            netPayableSpan.innerText = net.toFixed(2);
+        }
+
+        driverSelect.addEventListener('change', function() {
+            let selected = this.options[this.selectedIndex];
+            let salary = selected.getAttribute('data-salary');
+            let pendingAdvance = selected.getAttribute('data-advance');
+            
+            if (salary) {
+                baseSalaryInput.value = salary;
+            }
+            if (pendingAdvance && parseFloat(pendingAdvance) > 0) {
+                advanceDeductionInput.value = pendingAdvance;
+                pendingAdvanceSpan.innerText = parseFloat(pendingAdvance).toFixed(2);
+            } else {
+                advanceDeductionInput.value = 0;
+                pendingAdvanceSpan.innerText = '0';
+            }
+            calculateNet();
+        });
+        
+        baseSalaryInput.addEventListener('input', calculateNet);
+        bonusInput.addEventListener('input', calculateNet);
+        penaltyInput.addEventListener('input', calculateNet);
+        
+        calculateNet();
+
+        // Reset form button behavior
+        const resetBtn = document.querySelector('button[type="reset"]');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('salaryForm').reset();
+                // Reset to default month and re-trigger calculations
+                const monthInput = document.querySelector('input[name="month"]');
+                if (monthInput) monthInput.value = "{{ current_month }}";
+                const paymentDate = document.querySelector('input[name="payment_date"]');
+                if (paymentDate) paymentDate.value = "{{ current_month }}-01";
+                advanceDeductionInput.value = 0;
+                pendingAdvanceSpan.innerText = '0';
+                baseSalaryInput.value = '';
+                bonusInput.value = 0;
+                penaltyInput.value = 0;
+                calculateNet();
+            });
+        }
+
+        const refreshBtn = document.getElementById('refreshForm');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                document.getElementById('salaryForm').reset();
+                const monthInput = document.querySelector('input[name="month"]');
+                if (monthInput) monthInput.value = "{{ current_month }}";
+                const paymentDate = document.querySelector('input[name="payment_date"]');
+                if (paymentDate) paymentDate.value = "{{ current_month }}-01";
+                advanceDeductionInput.value = 0;
+                pendingAdvanceSpan.innerText = '0';
+                baseSalaryInput.value = '';
+                bonusInput.value = 0;
+                penaltyInput.value = 0;
+                calculateNet();
+            });
+        }
+    })();
+</script>
+{% endblock %}

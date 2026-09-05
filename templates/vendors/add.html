@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-vendor-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('vendor.list_vendors') }}">Vendors</a></li>
+                    <li class="breadcrumb-item active">New Vendor</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple, #1E3A8A);">Add New Vendor / Supplier</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('vendor.list_vendors') }}" class="btn btn-outline-secondary me-2">
+                <i class="fa-solid fa-xmark me-1"></i> Discard
+            </a>
+            <button type="submit" form="vendorAddForm" class="btn btn-primary">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Save Vendor
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-building text-primary me-2"></i>Vendor Information</h6>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" id="vendorAddForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Vendor / Company Name <span class="text-danger">*</span></label>
+                        <input type="text" name="vendor_name" class="form-control" placeholder="e.g. Master Auto Parts" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contact Person</label>
+                        <input type="text" name="contact_person" class="form-control" placeholder="e.g. Muhammad Ali">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Phone Number</label>
+                        <input type="text" name="phone" class="form-control" placeholder="e.g. 0300-1234567">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="e.g. vendor@example.com">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Address / Workshop Location</label>
+                        <textarea name="address" class="form-control" rows="2" placeholder="Street, City, Postal Address"></textarea>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Tax / NTN Number</label>
+                        <input type="text" name="tax_number" class="form-control" placeholder="e.g. 1234567-8">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Payment Terms</label>
+                        <select name="payment_terms" class="form-select">
+                            <option value="Cash">Cash on Delivery</option>
+                            <option value="Net 15">Net 15 Days</option>
+                            <option value="Net 30" selected>Net 30 Days</option>
+                            <option value="Net 60">Net 60 Days</option>
+                            <option value="Advance">100% Advance</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Rating (1 to 5 Stars)</label>
+                        <select name="rating" class="form-select">
+                            <option value="5">★★★★★ (5 - Excellent)</option>
+                            <option value="4" selected>★★★★☆ (4 - Good)</option>
+                            <option value="3">★★★☆☆ (3 - Average)</option>
+                            <option value="2">★★☆☆☆ (2 - Below Average)</option>
+                            <option value="1">★☆☆☆☆ (1 - Poor)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fa-solid fa-save me-1"></i> Save Vendor
+                    </button>
+                    <a href="{{ url_for('vendor.list_vendors') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-vendor-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('vendor.list_vendors') }}">Vendors</a></li>
+                    <li class="breadcrumb-item active">Edit Vendor</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple, #1E3A8A);">Edit Vendor #{{ vendor.vendor_id }} - {{ vendor.vendor_name }}</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('vendor.list_vendors') }}" class="btn btn-outline-secondary me-2">
+                <i class="fa-solid fa-xmark me-1"></i> Discard
+            </a>
+            <button type="submit" form="vendorEditForm" class="btn btn-primary">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Update Vendor
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Update Vendor Details</h6>
+            <div>
+                {% if vendor.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" id="vendorEditForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Vendor / Company Name <span class="text-danger">*</span></label>
+                        <input type="text" name="vendor_name" class="form-control" value="{{ vendor.vendor_name }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contact Person</label>
+                        <input type="text" name="contact_person" class="form-control" value="{{ vendor.contact_person or '' }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Phone Number</label>
+                        <input type="text" name="phone" class="form-control" value="{{ vendor.phone or '' }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" value="{{ vendor.email or '' }}">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Address / Workshop Location</label>
+                        <textarea name="address" class="form-control" rows="2">{{ vendor.address or '' }}</textarea>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Tax / NTN Number</label>
+                        <input type="text" name="tax_number" class="form-control" value="{{ vendor.tax_number or '' }}">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Payment Terms</label>
+                        <select name="payment_terms" class="form-select">
+                            <option value="Cash" {% if vendor.payment_terms == 'Cash' %}selected{% endif %}>Cash on Delivery</option>
+                            <option value="Net 15" {% if vendor.payment_terms == 'Net 15' %}selected{% endif %}>Net 15 Days</option>
+                            <option value="Net 30" {% if vendor.payment_terms == 'Net 30' or not vendor.payment_terms %}selected{% endif %}>Net 30 Days</option>
+                            <option value="Net 60" {% if vendor.payment_terms == 'Net 60' %}selected{% endif %}>Net 60 Days</option>
+                            <option value="Advance" {% if vendor.payment_terms == 'Advance' %}selected{% endif %}>100% Advance</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Rating (1 to 5 Stars)</label>
+                        <select name="rating" class="form-select">
+                            <option value="5" {% if vendor.rating == 5 %}selected{% endif %}>★★★★★ (5 - Excellent)</option>
+                            <option value="4" {% if vendor.rating == 4 %}selected{% endif %}>★★★★☆ (4 - Good)</option>
+                            <option value="3" {% if vendor.rating == 3 or not vendor.rating %}selected{% endif %}>★★★☆☆ (3 - Average)</option>
+                            <option value="2" {% if vendor.rating == 2 %}selected{% endif %}>★★☆☆☆ (2 - Below Average)</option>
+                            <option value="1" {% if vendor.rating == 1 %}selected{% endif %}>★☆☆☆☆ (1 - Poor)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-12">
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if vendor.is_active %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="is_active">Vendor is Active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a href="{{ url_for('vendor.delete_vendor', vendor_id=vendor.vendor_id) }}" class="btn btn-outline-danger" onclick="return confirm('Permanently delete this vendor?');">
+                        <i class="fa-solid fa-trash me-1"></i> Delete Vendor
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('vendor.list_vendors') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

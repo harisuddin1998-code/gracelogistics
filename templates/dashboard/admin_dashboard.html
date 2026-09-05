@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-dashboard-container py-3">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-4">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item active">Dashboard Overview</li>
+                </ol>
+            </div>
+            <h4 class="mb-0 fw-bold" style="color: var(--odoo-purple);">Fleet Operational Dashboard</h4>
+        </div>
+        <div class="o_cp_right">
+            <button type="button" class="btn btn-odoo-secondary" id="refreshDashboard">
+                <i class="fas fa-sync-alt me-1"></i> Refresh Data
+            </button>
+            <a href="/vehicles/add" class="btn btn-odoo-primary">
+                <i class="fas fa-plus me-1"></i> Add Vehicle
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Metrics Row (Soft Pastel Purples, Blues & Pinks) -->
+    <div class="o_dashboard_metrics">
+        <div class="o_metric_card">
+            <div class="o_metric_icon bg-soft-purple">
+                <i class="fas fa-truck-moving"></i>
+            </div>
+            <div class="o_metric_value">{{ vehicle_stats.total_vehicles }}</div>
+            <div class="o_metric_label">Total Vehicles</div>
+            <div class="o_metric_sub">Active: <span class="badge o_status_purple">{{ vehicle_stats.active_vehicles }}</span></div>
+        </div>
+        <div class="o_metric_card">
+            <div class="o_metric_icon bg-soft-blue">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="o_metric_value">{{ driver_stats.active_drivers }}</div>
+            <div class="o_metric_label">Active Drivers</div>
+            <div class="o_metric_sub">Advances: <strong class="text-primary">PKR {{ "{:,.0f}".format(driver_stats.total_advances) }}</strong></div>
+        </div>
+        <div class="o_metric_card">
+            <div class="o_metric_icon bg-soft-pink">
+                <i class="fas fa-wrench"></i>
+            </div>
+            <div class="o_metric_value">{{ vehicle_stats.under_repair }}</div>
+            <div class="o_metric_label">Under Repair</div>
+            <div class="o_metric_sub"><span class="badge o_status_pink">In Workshop</span></div>
+        </div>
+        <div class="o_metric_card">
+            <div class="o_metric_icon bg-soft-info">
+                <i class="fas fa-gas-pump"></i>
+            </div>
+            <div class="o_metric_value">PKR {{ "{:,.0f}".format(vehicle_stats.monthly_fuel_cost) }}</div>
+            <div class="o_metric_label">Monthly Fuel Cost</div>
+            <div class="o_metric_sub">Last 30 days</div>
+        </div>
+    </div>
+
+    <!-- Recent Fuel Entries (Odoo Data Table) -->
+    <div class="o_card mb-4">
+        <div class="o_card_header">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-gas-pump me-2 text-primary"></i>
+                <span>Recent Fuel Logs</span>
+            </div>
+            <span class="badge o_status_info">Last 5 Transactions</span>
+        </div>
+        <div class="o_card_body p-0">
+            <div class="table-responsive">
+                <table class="o_data_table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Vehicle Reg</th>
+                            <th class="text-end">Fuel Quantity</th>
+                            <th class="text-end">Total Cost (PKR)</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in recent_fuel %}
+                        <tr class="o_data_row">
+                            <td class="text-nowrap fw-semibold">{{ entry.date }}</td>
+                            <td><span class="o_reg_badge">{{ entry.registration_no }}</span></td>
+                            <td class="text-end text-number">{{ entry.liters }} L</td>
+                            <td class="text-end text-amount"><strong>PKR {{ "{:,.2f}".format(entry.total_cost) }}</strong></td>
+                            <td class="text-center">
+                                {% if entry.status == 'Approved' %}
+                                <span class="o_status_badge o_status_success"><i class="fa-solid fa-circle-check me-1"></i>Approved</span>
+                                {% else %}
+                                <span class="o_status_badge o_status_warning"><i class="fa-solid fa-clock me-1"></i>Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No recent fuel entries logged</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two Columns: Driver Advances & Expiring Permits -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="o_card h-100 mb-0">
+                <div class="o_card_header">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-hand-holding-dollar me-2 text-warning"></i>
+                        <span>Drivers with Advance Balances</span>
+                    </div>
+                    <span class="badge o_status_warning">Salary Deductions</span>
+                </div>
+                <div class="o_card_body p-0">
+                    <div class="table-responsive">
+                        <table class="o_data_table">
+                            <thead>
+                                <tr>
+                                    <th>Driver Name</th>
+                                    <th class="text-end">Advance Balance</th>
+                                    <th class="text-end">Base Salary</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for driver in drivers_with_advance %}
+                                <tr class="o_data_row">
+                                    <td><div class="fw-semibold"><i class="fa-solid fa-user me-2 text-muted"></i>{{ driver.full_name }}</div></td>
+                                    <td class="text-end text-amount text-danger fw-bold">PKR {{ "{:,.2f}".format(driver.advance_balance) }}</td>
+                                    <td class="text-end text-amount">PKR {{ "{:,.2f}".format(driver.base_salary) }}</td>
+                                    <td class="text-center"><span class="o_status_badge o_status_warning">Pending</span></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">No pending driver advances</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="o_card h-100 mb-0">
+                <div class="o_card_header">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-shield-halved me-2 text-danger"></i>
+                        <span>Permits Expiring Soon (30 Days)</span>
+                    </div>
+                    <span class="badge o_status_danger">Compliance Alert</span>
+                </div>
+                <div class="o_card_body p-0">
+                    <div class="table-responsive">
+                        <table class="o_data_table">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>Expiry Date</th>
+                                    <th class="text-center">Days Remaining</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for permit in expiring_permits %}
+                                <tr class="o_data_row">
+                                    <td>
+                                        <span class="o_reg_badge me-1">{{ permit.registration_no }}</span>
+                                        <small class="text-muted d-block">{{ permit.make }} {{ permit.model }}</small>
+                                    </td>
+                                    <td class="text-nowrap">{{ permit.expiry_date }}</td>
+                                    <td class="text-center">
+                                        {% if permit.days_left < 7 %}
+                                        <span class="o_status_badge o_status_danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ permit.days_left }} Days</span>
+                                        {% else %}
+                                        <span class="o_status_badge o_status_warning">{{ permit.days_left }} Days</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center"><a href="/permits/" class="btn btn-sm btn-odoo-secondary py-1 px-2" style="font-size: 0.75rem;"><i class="fa-solid fa-rotate me-1"></i>Renew</a></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">All vehicle permits are up to date</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    {% if low_stock %}
+    <div class="o_card mt-4 mb-0">
+        <div class="o_card_header">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-circle-exclamation me-2 text-danger"></i>
+                <span>Spare Parts Low Stock Alert</span>
+            </div>
+            <span class="badge o_status_danger">Reorder Required</span>
+        </div>
+        <div class="o_card_body p-0">
+            <div class="table-responsive">
+                <table class="o_data_table">
+                    <thead>
+                        <tr>
+                            <th>Part Description</th>
+                            <th>Part Number</th>
+                            <th class="text-end">In Stock</th>
+                            <th class="text-end">Reorder Threshold</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in low_stock %}
+                        <tr class="o_data_row">
+                            <td><i class="fa-solid fa-gear me-2 text-primary"></i><strong>{{ item.part_name }}</strong></td>
+                            <td><code>{{ item.part_number }}</code></td>
+                            <td class="text-end text-number text-danger fw-bold">{{ item.quantity_in_stock }}</td>
+                            <td class="text-end text-number">{{ item.reorder_level }}</td>
+                            <td class="text-center"><span class="o_status_badge o_status_danger">Low Stock</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('refreshDashboard')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

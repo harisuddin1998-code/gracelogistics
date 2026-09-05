@@ -1,0 +1,767 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-main-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item"><a href="/fuel/report">Fuel Logs</a></li>
+                    <li class="breadcrumb-item active">New Log Entry</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple);">Daily Fuel Consumption Log</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="/fuel/report" class="btn btn-odoo-secondary">
+                <i class="fa-solid fa-xmark me-1"></i> Discard
+            </a>
+            <button type="button" id="btnSaveTop" class="btn btn-odoo-primary">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Save Entry
+            </button>
+        </div>
+    </div>
+
+        <!-- Main Form Sheet -->
+        <div class="o_form_sheet">
+            <!-- Header Section -->
+            <div class="o_form_sheet_header">
+                <div class="o_avatar_container">
+                    <div class="o_vehicle_avatar">
+                        <i class="fas fa-gas-pump"></i>
+                    </div>
+                </div>
+                <div class="o_title_editable">
+                    <h1>Daily Fuel Entry <span class="o_subtitle">Record fuel consumption</span></h1>
+                    <div class="o_status_badge">
+                        <span class="badge bg-primary-soft text-primary">New Entry</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" id="fuelForm" novalidate>
+                <!-- Vehicle Selection prominent row -->
+                <div class="o_form_uri_area">
+                    <div class="o_row o_row_registration">
+                        <div class="o_field_widget o_field_registration">
+                            <label class="o_form_label">Select Vehicle <span class="o_required">*</span></label>
+                            <div class="o_input_wrapper">
+                                <i class="fas fa-truck o_field_icon"></i>
+                                <select name="vehicle_id" id="vehicle_id" class="o_select" required>
+                                    <option value="">-- Select Vehicle --</option>
+                                    {% for v in vehicles %}
+                                    <option value="{{ v.vehicle_id }}" 
+                                            data-reg="{{ v.registration_no }}"
+                                            data-odometer="{{ v.current_odometer }}">
+                                        {{ v.registration_no }} - {{ v.make }} {{ v.model }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <span class="o_field_help">Select vehicle for fuel entry</span>
+                        </div>
+                        <div class="o_field_widget o_field_system_id">
+                            <label class="o_form_label">Current Odometer</label>
+                            <div class="o_system_id_badge" id="currentOdometer">
+                                <span>Not Selected</span>
+                                <i class="fas fa-tachometer-alt ms-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two column layout -->
+                <div class="o_group o_inner_group">
+                    <div class="o_group_column">
+                        <div class="o_group_name">
+                            <i class="fas fa-calendar-alt me-2"></i> Fuel Details
+                        </div>
+                        <div class="o_group_fields">
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Date <span class="o_required">*</span></label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol"><i class="fas fa-calendar-day"></i></span>
+                                    <input type="date" name="date" id="fuelDate" value="{{ today }}" required>
+                                </div>
+                            </div>
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Fuel Station</label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol"><i class="fas fa-gas-pump"></i></span>
+                                    <input type="text" name="fuel_station" placeholder="e.g., PSO, Shell, Caltex">
+                                </div>
+                                <span class="o_field_help">Optional - Fuel station name</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="o_group_column">
+                        <div class="o_group_name">
+                            <i class="fas fa-chart-line me-2"></i> Quantity & Cost
+                        </div>
+                        <div class="o_group_fields">
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Liters <span class="o_required">*</span></label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol"><i class="fas fa-tint"></i></span>
+                                    <input type="number" step="0.01" name="liters" id="liters" 
+                                           placeholder="0.00" required>
+                                </div>
+                            </div>
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Cost per Liter (PKR) <span class="o_required">*</span></label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol">₨</span>
+                                    <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter" 
+                                           placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Odometer and Total Cost Row -->
+                <div class="o_group o_group_financial">
+                    <div class="o_group_name">
+                        <i class="fas fa-tachometer-alt me-2"></i> Reading & Summary
+                    </div>
+                    <div class="o_group_fields o_group_3_cols">
+                        <div class="o_field_widget">
+                            <label class="o_form_label">Odometer Reading (km) <span class="o_required">*</span></label>
+                            <div class="o_input_currency">
+                                <span class="o_currency_symbol"><i class="fas fa-road"></i></span>
+                                <input type="number" name="odometer_reading" id="odometerReading" 
+                                       placeholder="Current mileage" required>
+                            </div>
+                            <span class="o_field_help">Current vehicle odometer reading</span>
+                        </div>
+                        <div class="o_field_widget">
+                            <label class="o_form_label">Total Cost (Auto-calculated)</label>
+                            <div class="o_input_currency">
+                                <span class="o_currency_symbol">₨</span>
+                                <input type="text" id="totalCost" class="o_input" readonly 
+                                       style="background-color: #F8FAFC; font-weight: bold;">
+                            </div>
+                            <span class="o_field_help">Liters × Cost per Liter</span>
+                        </div>
+                        <div class="o_field_widget">
+                            <label class="o_form_label">Fuel Efficiency</label>
+                            <div class="o_system_id_badge" id="fuelEfficiency">
+                                <span>—</span>
+                                <i class="fas fa-chart-line ms-1"></i>
+                            </div>
+                            <span class="o_field_help">Auto-calculated after entry</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Notes Section -->
+                <div class="o_chatter_wrapper">
+                    <div class="o_chatter_top">
+                        <i class="fas fa-sticky-note"></i> <strong>Additional Notes</strong>
+                        <span class="badge o_chatter_badge">Optional Information</span>
+                    </div>
+                    <div class="o_chatter_content">
+                        <div class="o_field_widget">
+                            <textarea name="notes" class="o_input o_textarea" rows="3" 
+                                      placeholder="Add any additional notes about this fuel entry (e.g., route, purpose, remarks)"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div class="o_form_bottom_buttons">
+                    <div class="o_button_panel">
+                        <a href="{{ url_for('fuel.fuel_report') }}" class="btn o_btn_cancel_footer">
+                            <i class="fas fa-chart-bar"></i> View Report
+                        </a>
+                        <button type="reset" class="btn o_btn_cancel_footer" id="btnResetForm">
+                            <i class="fas fa-undo"></i> Reset Form
+                        </button>
+                        <button type="submit" class="btn o_btn_save_footer" id="submitBtnFooter">
+                            <i class="fas fa-save"></i> Submit Fuel Entry
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Professional Odoo Style -->
+<style>
+    :root {
+        --primary-blue: #1E3A8A;
+        --primary-light: #3B82F6;
+        --primary-soft-bg: #EFF6FF;
+        --gray-bg: #F8FAFC;
+        --card-white: #FFFFFF;
+        --border-light: #E2E8F0;
+        --text-dark: #0F172A;
+        --text-muted: #475569;
+        --required-red: #DC2626;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+
+    body {
+        background-color: var(--gray-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .odoo-main-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+
+    /* Form View */
+    .o_form_view {
+        position: relative;
+    }
+
+    .o_form_buttons_container {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_form_buttons_edit {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .o_btn_discard, .o_btn_save {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .o_btn_discard {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_discard:hover {
+        background-color: #F1F5F9;
+        border-color: #CBD5E1;
+    }
+
+    .o_btn_save {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .o_btn_save:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    /* Form Sheet */
+    .o_form_sheet {
+        background: var(--card-white);
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        padding: 2rem;
+        border: 1px solid var(--border-light);
+    }
+
+    .o_form_sheet_header {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
+        border-bottom: 2px solid var(--border-light);
+    }
+
+    .o_vehicle_avatar {
+        width: 68px;
+        height: 68px;
+        background: var(--primary-soft-bg);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--primary-blue);
+    }
+
+    .o_title_editable h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-dark);
+    }
+
+    .o_subtitle {
+        font-size: 0.85rem;
+        font-weight: 400;
+        color: var(--text-muted);
+        margin-left: 0.5rem;
+    }
+
+    .o_status_badge .badge {
+        background-color: var(--primary-soft-bg);
+        color: var(--primary-blue);
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.9rem;
+        border-radius: 40px;
+    }
+
+    /* Registration Row */
+    .o_row_registration {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        background: var(--primary-soft-bg);
+        padding: 1.25rem 1.5rem;
+        border-radius: 18px;
+        border: 1px solid #DBEAFE;
+    }
+
+    .o_field_registration {
+        flex: 2;
+    }
+
+    .o_field_system_id {
+        flex: 1;
+    }
+
+    .o_input_wrapper {
+        position: relative;
+    }
+
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-blue);
+    }
+
+    .o_select {
+        width: 100%;
+        padding: 0.7rem 1rem 0.7rem 2.3rem;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 0.9rem;
+        background-color: var(--card-white);
+        appearance: none;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%233B82F6" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+    }
+
+    .o_select:focus {
+        border-color: var(--primary-light);
+        outline: none;
+        box-shadow: var(--focus-shadow);
+    }
+
+    .o_system_id_badge {
+        background-color: var(--card-white);
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        text-align: center;
+        font-weight: 500;
+        color: var(--primary-blue);
+        border: 1px solid var(--border-light);
+        font-size: 0.9rem;
+    }
+
+    /* Groups */
+    .o_group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .o_group_column {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .o_group_name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-dark);
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-light);
+        display: inline-block;
+    }
+
+    .o_group_name i {
+        color: var(--primary-blue);
+    }
+
+    .o_group_fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .o_group_financial .o_group_fields.o_group_3_cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .o_field_widget {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .o_form_label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-muted);
+    }
+
+    .o_required {
+        color: var(--required-red);
+    }
+
+    .o_input, .o_textarea {
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        padding: 0.65rem 0.9rem;
+        background-color: var(--card-white);
+        font-size: 0.9rem;
+        width: 100%;
+    }
+
+    .o_textarea {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .o_input:focus, .o_textarea:focus {
+        border-color: var(--primary-light);
+        outline: none;
+        box-shadow: var(--focus-shadow);
+    }
+
+    /* Input Currency */
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        background: var(--card-white);
+        padding-left: 0.5rem;
+    }
+
+    .o_input_currency .o_currency_symbol {
+        padding: 0 0.5rem;
+        color: var(--text-muted);
+    }
+
+    .o_input_currency input {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+    }
+
+    /* Chatter */
+    .o_chatter_wrapper {
+        margin-top: 2rem;
+        background: var(--gray-bg);
+        border-radius: 18px;
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+    }
+
+    .o_chatter_top {
+        padding: 0.9rem 1.5rem;
+        background: var(--card-white);
+        border-bottom: 1px solid var(--border-light);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .o_chatter_badge {
+        background: #E2E8F0;
+        color: var(--text-muted);
+        margin-left: 0.7rem;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .o_chatter_content {
+        padding: 1rem 1.5rem;
+    }
+
+    /* Footer Buttons */
+    .o_form_bottom_buttons {
+        margin-top: 2rem;
+        padding-top: 1.2rem;
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .o_button_panel {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .o_btn_cancel_footer, .o_btn_save_footer {
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .o_btn_cancel_footer {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_cancel_footer:hover {
+        background-color: #F1F5F9;
+    }
+
+    .o_btn_save_footer {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .o_btn_save_footer:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+        .odoo-main-container {
+            padding: 0 0.75rem;
+        }
+        .o_form_sheet {
+            padding: 1.25rem;
+        }
+        .o_row_registration {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .o_group {
+            gap: 1.5rem;
+        }
+        .o_button_panel {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
+<script>
+    (function() {
+        'use strict';
+        
+        const form = document.getElementById('fuelForm');
+        const topSaveBtn = document.getElementById('btnSaveTop');
+        const topDiscardBtn = document.getElementById('btnDiscardTop');
+        const footerSaveBtn = document.getElementById('submitBtnFooter');
+        const resetBtn = document.getElementById('btnResetForm');
+        
+        // Form elements
+        const vehicleSelect = document.getElementById('vehicle_id');
+        const currentOdometerSpan = document.getElementById('currentOdometer');
+        const litersInput = document.getElementById('liters');
+        const costPerLiterInput = document.getElementById('costPerLiter');
+        const totalCostInput = document.getElementById('totalCost');
+        const odometerReadingInput = document.getElementById('odometerReading');
+        const fuelEfficiencySpan = document.getElementById('fuelEfficiency');
+        
+        // Calculate total cost
+        function calculateTotalCost() {
+            const liters = parseFloat(litersInput.value) || 0;
+            const costPerLiter = parseFloat(costPerLiterInput.value) || 0;
+            const total = liters * costPerLiter;
+            totalCostInput.value = total.toFixed(2);
+            return total;
+        }
+        
+        // Calculate fuel efficiency
+        function calculateFuelEfficiency() {
+            const liters = parseFloat(litersInput.value) || 0;
+            const odometerReading = parseFloat(odometerReadingInput.value) || 0;
+            const previousOdometer = parseFloat(vehicleSelect.selectedOptions[0]?.dataset?.odometer) || 0;
+            
+            if (liters > 0 && odometerReading > 0 && previousOdometer > 0) {
+                const distance = odometerReading - previousOdometer;
+                if (distance > 0) {
+                    const efficiency = distance / liters;
+                    fuelEfficiencySpan.querySelector('span').innerHTML = `${efficiency.toFixed(2)} km/l`;
+                    fuelEfficiencySpan.style.backgroundColor = '#E3F5EC';
+                    fuelEfficiencySpan.style.color = '#0A6E43';
+                } else {
+                    fuelEfficiencySpan.querySelector('span').innerHTML = '—';
+                    fuelEfficiencySpan.style.backgroundColor = '';
+                    fuelEfficiencySpan.style.color = '';
+                }
+            } else {
+                fuelEfficiencySpan.querySelector('span').innerHTML = '—';
+            }
+        }
+        
+        // Update current odometer display when vehicle is selected
+        if (vehicleSelect) {
+            vehicleSelect.addEventListener('change', function() {
+                const selected = this.options[this.selectedIndex];
+                const odometer = selected.getAttribute('data-odometer');
+                const reg = selected.getAttribute('data-reg');
+                
+                if (odometer && selected.value) {
+                    currentOdometerSpan.querySelector('span').innerHTML = 
+                        `<i class="fas fa-tachometer-alt"></i> ${parseInt(odometer).toLocaleString()} km`;
+                    if (odometerReadingInput && !odometerReadingInput.value) {
+                        odometerReadingInput.placeholder = `Current (Last: ${parseInt(odometer).toLocaleString()} km)`;
+                    }
+                } else {
+                    currentOdometerSpan.querySelector('span').innerHTML = 'Not Selected';
+                }
+            });
+        }
+        
+        // Add event listeners for calculations
+        if (litersInput) {
+            litersInput.addEventListener('input', function() {
+                calculateTotalCost();
+                calculateFuelEfficiency();
+            });
+        }
+        
+        if (costPerLiterInput) {
+            costPerLiterInput.addEventListener('input', calculateTotalCost);
+        }
+        
+        if (odometerReadingInput) {
+            odometerReadingInput.addEventListener('input', calculateFuelEfficiency);
+        }
+        
+        // Submit form function
+        function submitForm(buttonElement) {
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return false;
+            }
+            const allSaveButtons = [topSaveBtn, footerSaveBtn];
+            allSaveButtons.forEach(btn => {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+                }
+            });
+            if (topDiscardBtn) topDiscardBtn.disabled = true;
+            form.submit();
+            return true;
+        }
+        
+        // Save button handlers
+        if (topSaveBtn) {
+            topSaveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                submitForm(this);
+            });
+        }
+        
+        if (footerSaveBtn) {
+            footerSaveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                submitForm(this);
+            });
+        }
+        
+        // Discard and redirect
+        function discardAndRedirect() {
+            if (confirm('Discard all changes? Unsaved data will be lost.')) {
+                window.location.href = "{{ url_for('fuel.fuel_report') }}";
+            }
+        }
+        
+        if (topDiscardBtn) {
+            topDiscardBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                discardAndRedirect();
+            });
+        }
+        
+        // Reset form function
+        function resetFormFields() {
+            form.reset();
+            totalCostInput.value = '';
+            fuelEfficiencySpan.querySelector('span').innerHTML = '—';
+            if (currentOdometerSpan) {
+                currentOdometerSpan.querySelector('span').innerHTML = 'Not Selected';
+            }
+            // Reset date to today
+            const dateInput = document.getElementById('fuelDate');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+            // Show success message
+            const msg = $('<div class="alert alert-success alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">' +
+                '<i class="fas fa-check-circle me-2"></i>Form has been reset successfully!' +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                '</div>');
+            $('body').append(msg);
+            setTimeout(() => msg.fadeOut(() => msg.remove()), 3000);
+        }
+        
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('Reset all form fields?')) {
+                    resetFormFields();
+                }
+            });
+        }
+        
+        // Required field validation visual feedback
+        const requiredFields = form.querySelectorAll('[required]');
+        requiredFields.forEach(field => {
+            field.addEventListener('blur', function() {
+                if (!this.value.trim()) {
+                    this.style.borderColor = '#DC2626';
+                } else {
+                    this.style.borderColor = '';
+                }
+            });
+        });
+        
+        // Initialize tooltips if Bootstrap is available
+        if (typeof bootstrap !== 'undefined') {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+    })();
+</script>
+{% endblock %}

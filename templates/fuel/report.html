@@ -1,0 +1,832 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-main-container">
+    <!-- Odoo-style Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#"><i class="fas fa-home me-1"></i>Fleet</a></li>
+                    <li class="breadcrumb-item active">Fuel Management</li>
+                </ol>
+            </div>
+            <div class="o_cp_stat_info ms-3">
+                <span class="badge bg-light text-dark border">
+                    <i class="fas fa-chart-line me-1 text-primary"></i>Live Report
+                </span>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('fuel.fuel_entry') }}" class="btn btn-primary o_cp_button">
+                    <i class="fas fa-plus-circle me-2"></i> Add Fuel Entry
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="exportReport">
+                    <i class="fas fa-download me-2"></i> Export Report
+                </button>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshView">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="o_content">
+        <!-- KPI Statistics Dashboard -->
+        <div class="o_dashboard_metrics">
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-primary">
+                    <i class="fas fa-gas-pump"></i>
+                </div>
+                <div class="o_metric_value">{{ entries|length }}</div>
+                <div class="o_metric_label">Total Transactions</div>
+            </div>
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-success">
+                    <i class="fas fa-tint"></i>
+                </div>
+                <div class="o_metric_value">{{ total_liters|default(0)|round(0)|int }} L</div>
+                <div class="o_metric_label">Total Liters</div>
+            </div>
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-warning">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="o_metric_value">PKR {{ "{:,.0f}".format(total_cost) }}</div>
+                <div class="o_metric_label">Total Cost</div>
+            </div>
+            <div class="o_metric_card">
+                <div class="o_metric_icon bg-soft-info">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="o_metric_value">{{ avg_cost_per_liter|default(0)|round(2) }}</div>
+                <div class="o_metric_label">Avg Cost/Liter</div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="o_list_view card mb-4">
+            <div class="card-header o_list_header">
+                <div class="o_list_header_title">
+                    <i class="fas fa-filter me-2 text-primary"></i> Filter Reports
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="GET" id="filterForm">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="o_form_label">Vehicle</label>
+                            <div class="o_input_wrapper">
+                                <i class="fas fa-truck o_field_icon"></i>
+                                <select name="vehicle_id" class="o_select">
+                                    <option value="">All Vehicles</option>
+                                    {% for v in vehicles %}
+                                    <option value="{{ v.vehicle_id }}" {% if selected_vehicle == v.vehicle_id %}selected{% endif %}>
+                                        {{ v.registration_no }} - {{ v.make }} {{ v.model }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="o_form_label">Start Date</label>
+                            <div class="o_input_currency">
+                                <span class="o_currency_symbol"><i class="fas fa-calendar-alt"></i></span>
+                                <input type="date" name="start_date" value="{{ start_date or '' }}" placeholder="Start Date">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="o_form_label">End Date</label>
+                            <div class="o_input_currency">
+                                <span class="o_currency_symbol"><i class="fas fa-calendar-alt"></i></span>
+                                <input type="date" name="end_date" value="{{ end_date or '' }}" placeholder="End Date">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="o_form_label">&nbsp;</label>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary o_btn_save_footer">
+                                    <i class="fas fa-search me-2"></i> Apply Filter
+                                </button>
+                                <a href="{{ url_for('fuel.fuel_report') }}" class="btn o_btn_cancel_footer">
+                                    <i class="fas fa-undo me-2"></i> Reset
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Fuel Entries Table -->
+        <div class="o_list_view card">
+            <div class="card-header o_list_header">
+                <div class="o_list_header_title">
+                    <i class="fas fa-list me-2 text-primary"></i> Fuel Consumption Records
+                    <span class="badge bg-light text-dark ms-2">{{ entries|length }} records</span>
+                </div>
+                <div class="o_list_header_actions d-flex gap-2">
+                    <div class="btn-group btn-group-sm" id="statusFilterGroup">
+                        <button class="btn o_filter_btn active" data-status="all">
+                            <i class="fas fa-list me-1"></i>All
+                        </button>
+                        <button class="btn o_filter_btn" data-status="Approved">
+                            <i class="fas fa-check-circle me-1"></i>Approved
+                        </button>
+                        <button class="btn o_filter_btn" data-status="Pending">
+                            <i class="fas fa-clock me-1"></i>Pending
+                        </button>
+                        <button class="btn o_filter_btn" data-status="Rejected">
+                            <i class="fas fa-times-circle me-1"></i>Rejected
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="table-responsive o_list_table">
+                    <table class="table table-hover o_data_table" id="fuelTable" width="100%">
+                        <thead>
+                            <tr>
+                                <th><i class="fa-regular fa-calendar me-1"></i>Date</th>
+                                <th><i class="fa-solid fa-truck me-1"></i>Vehicle</th>
+                                <th class="text-center"><i class="fa-solid fa-circle-info me-1"></i>Status</th>
+                                <th class="text-end"><i class="fa-solid fa-droplet me-1"></i>Liters</th>
+                                <th class="text-end"><i class="fa-solid fa-tag me-1"></i>Cost/Liter</th>
+                                <th class="text-end"><i class="fa-solid fa-money-bill-wave me-1"></i>Total Cost</th>
+                                <th class="text-end"><i class="fa-solid fa-gauge me-1"></i>Odometer</th>
+                                <th><i class="fa-solid fa-gas-pump me-1"></i>Station</th>
+                                <th class="text-end"><i class="fa-solid fa-gear me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in entries %}
+                            <tr class="o_data_row">
+                                <td class="text-nowrap">
+                                    <i class="fa-regular fa-calendar text-muted me-1"></i>{{ e.date }}
+                                </td>
+                                <td class="o_driver_name_cell text-nowrap">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="o_status_badge o_status_blue fw-bold">{{ e.registration_no }}</span>
+                                        <small class="text-muted">{{ e.make }} {{ e.model }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-center text-nowrap">
+                                    {% if e.status == 'Approved' %}
+                                        <span class="o_status_badge o_status_success">Approved</span>
+                                    {% elif e.status == 'Pending' %}
+                                        <span class="o_status_badge o_status_warning">Pending</span>
+                                    {% else %}
+                                        <span class="o_status_badge o_status_danger">Rejected</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-semibold text-nowrap">
+                                    <i class="fa-solid fa-droplet text-primary me-1"></i>{{ e.liters }} L
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    PKR {{ e.cost_per_liter }}
+                                </td>
+                                <td class="text-end text-success fw-bold text-nowrap">
+                                    Rs {{ "{:,.2f}".format(e.total_cost) }}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    {{ "{:,}".format(e.odometer_reading) }} km
+                                </td>
+                                <td class="text-nowrap">
+                                    {% if e.fuel_station %}
+                                    <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.72rem;">
+                                        <i class="fa-solid fa-gas-pump me-1 text-muted"></i>{{ e.fuel_station }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="o_action_btns">
+                                        <a href="{{ url_for('fuel.edit_fuel', fuel_id=e.fuel_id) }}" class="o_icon_btn" title="Edit Entry">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <button class="o_icon_btn o_icon_rose o_btn_delete" data-id="{{ e.fuel_id }}" data-reg="{{ e.registration_no }}" title="Delete Entry">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-2 d-block"></i>
+                                    No fuel entries found
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('fuel.fuel_entry') }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-plus-circle"></i> Add First Fuel Entry
+                                        </a>
+                                    </div>
+                                 </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card-footer o_list_footer">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="o_footer_info">
+                        <i class="fas fa-database me-1"></i> 
+                        <strong>{{ entries|length }}</strong> record(s) | 
+                        Total Fuel: <strong>{{ total_liters|default(0)|round(2) }} L</strong> | 
+                        Total Cost: <strong>PKR {{ "{:,.2f}".format(total_cost) }}</strong>
+                    </div>
+                    <div class="o_footer_export">
+                        <button class="btn btn-sm btn-link text-primary" id="exportTableBtn">
+                            <i class="fas fa-download me-1"></i> Export to CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade o_modal" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content o_modal_content">
+            <div class="modal-body text-center p-4">
+                <div class="o_modal_icon">
+                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
+                </div>
+                <h5 class="fw-bold mt-3">Delete Fuel Entry</h5>
+                <p class="text-muted">Are you sure you want to permanently delete this fuel entry?</p>
+                <div class="o_modal_reg_display" id="deleteEntryDisplay"></div>
+                <p class="small text-danger mt-3">
+                    <i class="fas fa-exclamation-triangle me-1"></i> 
+                    This action cannot be undone. All associated data will be removed.
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-secondary o_btn_cancel" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <a id="confirmDeleteBtn" href="#" class="btn btn-danger o_btn_danger">
+                    <i class="fas fa-trash-alt me-1"></i>Delete Permanently
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Professional Odoo Style (same as before) -->
+<style>
+    :root {
+        --primary-blue: #1E3A8A;
+        --primary-light: #3B82F6;
+        --primary-soft-bg: #EFF6FF;
+        --gray-bg: #F8FAFC;
+        --card-white: #FFFFFF;
+        --border-light: #E2E8F0;
+        --text-dark: #0F172A;
+        --text-muted: #475569;
+        --required-red: #DC2626;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+
+    body {
+        background-color: var(--gray-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .odoo-main-container {
+        max-width: 1600px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+
+    /* Control Panel */
+    .o_control_panel {
+        background: var(--card-white);
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid var(--border-light);
+    }
+
+    .o_cp_left {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.875rem;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-blue);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-muted);
+    }
+
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+
+    .btn-primary.o_cp_button {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+    }
+
+    .btn-primary.o_cp_button:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(30,58,138,0.2);
+    }
+
+    /* Dashboard Metrics */
+    .o_dashboard_metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .o_metric_card {
+        background: var(--card-white);
+        border-radius: 12px;
+        padding: 1.25rem;
+        flex: 1;
+        min-width: 180px;
+        text-align: center;
+        border: 1px solid var(--border-light);
+        transition: all 0.2s;
+    }
+
+    .o_metric_card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .o_metric_icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.25rem;
+    }
+
+    .bg-soft-primary { background: #EFF6FF; color: var(--primary-blue); }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-info { background: #E0F2FE; color: #0369A1; }
+
+    .o_metric_value {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        line-height: 1.2;
+    }
+
+    .o_metric_label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.5px;
+        margin-top: 0.25rem;
+    }
+
+    /* List View Card */
+    .o_list_view {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .card-header.o_list_header {
+        background: var(--card-white);
+        border-bottom: 1px solid var(--border-light);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .o_list_header_title {
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 1rem;
+    }
+
+    .o_filter_btn {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.375rem 1rem;
+        border-radius: 20px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .o_filter_btn.active, .o_filter_btn:hover {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
+
+    /* Form Elements */
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .o_input_wrapper {
+        position: relative;
+    }
+
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-blue);
+    }
+
+    .o_select {
+        width: 100%;
+        padding: 0.6rem 1rem 0.6rem 2.3rem;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background-color: var(--card-white);
+        appearance: none;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%233B82F6" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+    }
+
+    .o_select:focus {
+        border-color: var(--primary-light);
+        outline: none;
+        box-shadow: var(--focus-shadow);
+    }
+
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--card-white);
+        padding-left: 0.5rem;
+    }
+
+    .o_input_currency .o_currency_symbol {
+        padding: 0 0.5rem;
+        color: var(--text-muted);
+    }
+
+    .o_input_currency input {
+        border: none;
+        padding: 0.6rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+        font-size: 0.875rem;
+    }
+
+    /* Table Styling */
+    .o_list_table .table {
+        margin-bottom: 0;
+    }
+
+    .o_list_table thead th {
+        background: #F9FBFE;
+        border-bottom: 1px solid var(--border-light);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--text-muted);
+        padding: 1rem;
+    }
+
+    .o_data_row td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .o_data_row:hover td {
+        background-color: var(--gray-bg);
+    }
+
+    /* Avatar */
+    .o_avatar_initials {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #EFF6FF 0%, #E3EDFC 100%);
+        color: var(--primary-blue);
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        font-size: 0.75rem;
+    }
+
+    /* Status Badges */
+    .o_status_badge {
+        padding: 0.3rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .o_status_active {
+        background: #E3F5EC;
+        color: #0A6E43;
+        border: 1px solid #B8E0D0;
+    }
+
+    .o_status_repair {
+        background: #FFF3E0;
+        color: #C17B0E;
+        border: 1px solid #FEDFAA;
+    }
+
+    .o_status_retired {
+        background: #F1F3F5;
+        color: #6C757D;
+        border: 1px solid #DEE2E6;
+    }
+
+    .o-station-badge {
+        background: #E8E0E6;
+        color: var(--primary-blue);
+        font-weight: 500;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+    }
+
+    /* Action Buttons */
+    .o_actions_group {
+        display: flex;
+        gap: 0.3rem;
+        justify-content: center;
+    }
+
+    .o_btn_edit, .o_btn_delete, .o_btn_view {
+        background: transparent;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: all 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .o_btn_edit:hover {
+        background: #EFF6FF;
+        color: var(--primary-blue);
+        transform: scale(1.05);
+    }
+
+    .o_btn_delete:hover {
+        background: #FEE2E2;
+        color: #DC2626;
+        transform: scale(1.05);
+    }
+
+    .o_btn_view:hover {
+        background: #E6F7EC;
+        color: #0A6E43;
+        transform: scale(1.05);
+    }
+
+    /* Footer */
+    .o_list_footer {
+        background: var(--card-white);
+        border-top: 1px solid var(--border-light);
+        padding: 0.75rem 1.5rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .o_btn_cancel_footer, .o_btn_save_footer {
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.8rem;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+    .o_btn_cancel_footer {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_cancel_footer:hover {
+        background-color: #F1F5F9;
+    }
+
+    .o_btn_save_footer {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .o_btn_save_footer:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    /* Modal */
+    .o_modal_content {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2);
+    }
+
+    .o_modal_icon {
+        background: #FEF2F2;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .o_modal_reg_display {
+        background: #F1F5F9;
+        display: inline-block;
+        padding: 0.4rem 1.2rem;
+        border-radius: 40px;
+        font-weight: 600;
+        margin-top: 0.75rem;
+        color: var(--primary-blue);
+    }
+
+    @media (max-width: 768px) {
+        .odoo-main-container {
+            padding: 0 0.75rem;
+        }
+        .o_metric_card {
+            min-width: calc(50% - 0.5rem);
+        }
+        .card-header.o_list_header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_actions_group {
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+    }
+</style>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable only if there are rows
+        if ($('#fuelTable tbody tr').length > 1) {
+            const table = $('#fuelTable').DataTable({
+                pageLength: 12,
+                responsive: true,
+                order: [[0, 'desc']],
+                language: {
+                    search: "Search:",
+                    searchPlaceholder: "Type to search...",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "No entries found",
+                    zeroRecords: "No matching entries found"
+                },
+                dom: '<"top d-flex justify-content-between align-items-center flex-wrap"lfr>t<"bottom d-flex justify-content-between align-items-center flex-wrap"ip>',
+                columnDefs: [
+                    { orderable: false, targets: 8 }
+                ]
+            });
+            
+            // Status filter
+            $('.o_filter_btn').on('click', function() {
+                const status = $(this).data('status');
+                $('.o_filter_btn').removeClass('active');
+                $(this).addClass('active');
+                
+                if (status === 'all') {
+                    table.column(7).search('').draw();
+                } else {
+                    table.column(7).search(status, false, false).draw();
+                }
+            });
+        }
+        
+        // Initialize tooltips
+        if (typeof bootstrap !== 'undefined') {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+        // Delete modal
+        $('.o_btn_delete').on('click', function(e) {
+            e.preventDefault();
+            const entryId = $(this).data('id');
+            const reg = $(this).data('reg');
+            $('#deleteEntryDisplay').text(reg);
+            $('#confirmDeleteBtn').attr('href', `/fuel/delete/${entryId}`);
+            $('#deleteConfirmModal').modal('show');
+        });
+        
+        // Refresh button
+        $('#refreshView').on('click', function() {
+            const $btn = $(this);
+            $btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+            setTimeout(() => window.location.reload(), 200);
+        });
+        
+        // Export to CSV
+        $('#exportTableBtn, #exportReport').on('click', function() {
+            const data = [];
+            const headers = [];
+            $('#fuelTable thead th').each(function(index) {
+                if (index < 8) headers.push($(this).text().trim().replace(/[^\w\s]/g, ''));
+            });
+            data.push(headers);
+            
+            $('#fuelTable tbody tr').each(function() {
+                const row = [];
+                $(this).find('td').each(function(index) {
+                    if (index < 8) {
+                        let text = $(this).text().trim().replace(/\s+/g, ' ');
+                        row.push(text);
+                    }
+                });
+                if (row.length > 0) data.push(row);
+            });
+            
+            let csvContent = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', 'fuel_report_export.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+    });
+</script>
+{% endblock %}

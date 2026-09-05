@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-company-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Settings</a></li>
+                    <li class="breadcrumb-item active">Company Information</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="/" class="btn btn-outline-secondary o_cp_button">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshForm">
+                    <i class="fas fa-sync-alt"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-building me-2"></i> Company Information
+            <span class="o_header_badge">System Configuration</span>
+        </div>
+        <div class="o_card_body">
+            <form method="POST" class="o_form" id="companyForm">
+                <!-- Two-column grid layout -->
+                <div class="o_form_grid o_grid_2cols">
+                    <div class="o_field_group o_full_width">
+                        <label class="o_form_label">Company Name <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-building o_field_icon"></i>
+                            <input type="text" name="company_name" class="o_input" value="{{ company_info.name }}" required>
+                        </div>
+                        <span class="o_field_help">Appears in the navbar, title bar, and footer</span>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Company Slogan / Tagline</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-tag o_field_icon"></i>
+                            <input type="text" name="slogan" class="o_input" value="{{ company_info.slogan }}">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Short Name</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-font o_field_icon"></i>
+                            <input type="text" name="short_name" class="o_input" value="{{ company_info.short_name }}">
+                        </div>
+                        <span class="o_field_help">Abbreviation (e.g., VMS)</span>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Phone Number</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-phone o_field_icon"></i>
+                            <input type="text" name="company_phone" class="o_input" value="{{ company_info.phone }}">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Email Address</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-envelope o_field_icon"></i>
+                            <input type="email" name="company_email" class="o_input" value="{{ company_info.email }}">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Website</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-globe o_field_icon"></i>
+                            <input type="url" name="company_website" class="o_input" value="{{ company_info.website }}">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Tax / GST Number</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-file-invoice-dollar o_field_icon"></i>
+                            <input type="text" name="tax_number" class="o_input" value="{{ company_info.tax_number }}">
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Registration Number</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-id-card o_field_icon"></i>
+                            <input type="text" name="registration_number" class="o_input" value="{{ company_info.registration_number }}">
+                        </div>
+                    </div>
+                    <div class="o_field_group o_full_width">
+                        <label class="o_form_label">Address</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-map-marker-alt o_field_icon"></i>
+                            <textarea name="company_address" class="o_input" rows="3">{{ company_info.address }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="o_form_actions">
+                    <button type="submit" class="o_btn_primary"><i class="fas fa-save"></i> Save Company Information</button>
+                    <a href="/" class="o_btn_secondary"><i class="fas fa-home"></i> Back to Dashboard</a>
+                    <button type="reset" class="o_btn_link">Reset Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview Card (Odoo info box) -->
+    <div class="o_card o_preview_card mt-4">
+        <div class="o_card_header">
+            <i class="fas fa-eye me-2"></i> Preview – How your company information appears
+            <span class="o_header_badge">Live display</span>
+        </div>
+        <div class="o_card_body">
+            <div class="o_preview_list">
+                <div class="o_preview_item">
+                    <i class="fas fa-chrome"></i>
+                    <div><strong>Browser Tab Title:</strong> {{ company_info.name }} - {{ company_info.slogan or 'Fleet Management' }}</div>
+                </div>
+                <div class="o_preview_item">
+                    <i class="fas fa-bars"></i>
+                    <div><strong>Navbar:</strong> {{ company_info.name }}</div>
+                </div>
+                <div class="o_preview_item">
+                    <i class="fas fa-print"></i>
+                    <div><strong>Printed Reports:</strong> {{ company_info.name }} at the top of all documents</div>
+                </div>
+                <div class="o_preview_item">
+                    <i class="fas fa-file-alt"></i>
+                    <div><strong>Salary Slips / Invoices:</strong> {{ company_info.name }}{% if company_info.slogan %} – {{ company_info.slogan }}{% endif %}</div>
+                </div>
+                <div class="o_preview_item">
+                    <i class="fas fa-copyright"></i>
+                    <div><strong>Footer:</strong> &copy; {{ company_info.name }}. All rights reserved.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* (same styles as before – unchanged) */
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-company-container {
+        max-width: 1200px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.8rem;
+    }
+    .o_form_grid {
+        display: grid;
+        gap: 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+    .o_grid_2cols {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .o_field_group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .o_full_width {
+        grid-column: 1 / -1;
+    }
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+    }
+    .o_required {
+        color: #DC2626;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .o_input {
+        width: 100%;
+        padding: 0.65rem 0.9rem 0.65rem 2.2rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    textarea.o_input {
+        padding-top: 0.65rem;
+        resize: vertical;
+        min-height: 70px;
+    }
+    .o_input:focus {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    .o_form_actions {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        border-top: 1px solid var(--odoo-border);
+        padding-top: 1.5rem;
+    }
+    .o_btn_primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_btn_primary:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    .o_btn_secondary {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_btn_secondary:hover {
+        background: #F1F5F9;
+    }
+    .o_btn_link {
+        background: transparent;
+        color: var(--odoo-primary-light);
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        margin-left: auto;
+        font-size: 0.8rem;
+    }
+    .o_btn_link:hover {
+        color: var(--odoo-primary);
+        text-decoration: underline;
+    }
+    .o_preview_card {
+        margin-top: 1.5rem;
+    }
+    .o_preview_list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+    .o_preview_item {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        font-size: 0.85rem;
+        color: var(--odoo-text);
+        background: #F9FBFE;
+        padding: 0.6rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--odoo-border);
+    }
+    .o_preview_item i {
+        width: 24px;
+        color: var(--odoo-primary);
+        font-size: 1rem;
+    }
+    @media (max-width: 768px) {
+        .odoo-company-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_form_actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_btn_link {
+            margin-left: 0;
+            text-align: center;
+        }
+        .o_preview_item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.3rem;
+        }
+    }
+</style>
+
+<script>
+    const refreshBtn = document.getElementById('refreshForm');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            document.getElementById('companyForm').reset();
+            window.location.reload();
+        });
+    }
+    const resetBtn = document.querySelector('button[type="reset"]');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('companyForm').reset();
+        });
+    }
+</script>
+{% endblock %}

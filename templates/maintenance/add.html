@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-maintenance-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item"><a href="/maintenance/history">Maintenance History</a></li>
+                    <li class="breadcrumb-item active">New Service Log</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple);">Register Maintenance Log</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('maintenance.history') }}" class="btn btn-odoo-secondary">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i> Service History
+            </a>
+            <button type="submit" form="maintenanceForm" class="btn btn-odoo-primary">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Save Maintenance Record
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Card – Odoo Form View -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-tools me-2"></i> Register Maintenance Event
+            <span class="o_header_badge">All service types</span>
+        </div>
+        <div class="o_card_body">
+            <form method="POST" id="maintenanceForm" class="o_form">
+                <!-- Common Fields Row -->
+                <div class="o_form_grid">
+                    <div class="o_field_group">
+                        <label class="o_form_label">Vehicle <span class="o_required">*</span></label>
+                        <select name="vehicle_id" class="o_select" required>
+                            <option value="">Select Vehicle</option>
+                            {% for v in vehicles %}
+                            <option value="{{ v.vehicle_id }}">{{ v.registration_no }} – {{ v.make }} {{ v.model }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Maintenance Type <span class="o_required">*</span></label>
+                        <select name="maintenance_type" id="maintenanceType" class="o_select" required>
+                            <option value="">Select Type</option>
+                            <option value="oil_change">🛢️ Oil Change</option>
+                            <option value="filter_change">🌬️ Filter Change</option>
+                            <option value="tire_change">🛞 Tire Change</option>
+                            <option value="tuning">⚡ Tuning</option>
+                            <option value="electrical">🔌 Electrical Work</option>
+                            <option value="body_work">🎨 Body Work</option>
+                        </select>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Date <span class="o_required">*</span></label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-calendar-alt o_field_icon"></i>
+                            <input type="date" name="date" class="o_input" value="{{ today }}" required>
+                        </div>
+                    </div>
+                    <div class="o_field_group">
+                        <label class="o_form_label">Cost (PKR) <span class="o_required">*</span></label>
+                        <div class="o_input_currency">
+                            <span class="o_currency_symbol">₨</span>
+                            <input type="number" step="0.01" name="cost" class="o_input_currency_field" required>
+                        </div>
+                    </div>
+                    <div class="o_field_group o_full_width">
+                        <label class="o_form_label">General Notes</label>
+                        <textarea name="notes" class="o_input" rows="2" placeholder="Any additional information..."></textarea>
+                    </div>
+                </div>
+
+                <!-- ========== DYNAMIC FIELDS (Odoo‑style collapsible sections) ========== -->
+                <!-- Oil Change -->
+                <div id="oilChangeFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-oil-can"></i> Oil Change Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Oil Type</label><select name="oil_type" class="o_select"><option>5W30</option><option>10W40</option><option>20W50</option><option>5W40</option><option>0W20</option></select></div>
+                        <div><label class="o_form_label">Quantity (Liters)</label><input type="number" step="0.5" name="quantity" class="o_input" value="4"></div>
+                        <div><label class="o_form_label">Current Odometer (km)</label><input type="number" name="current_odometer" class="o_input"></div>
+                        <div><label class="o_form_label">Mechanic Name</label><input type="text" name="mechanic_name" class="o_input"></div>
+                        <div><label class="o_form_label">Next Due (KM)</label><input type="number" name="next_due_km" class="o_input" placeholder="5000"></div>
+                        <div><label class="o_form_label">Next Due Date</label><input type="date" name="next_due_date" class="o_input"></div>
+                    </div>
+                </div>
+
+                <!-- Filter Change -->
+                <div id="filterChangeFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-filter"></i> Filter Change Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Filter Type</label><select name="filter_type" class="o_select"><option>Air Filter</option><option>Oil Filter</option><option>Fuel Filter</option><option>Cabin Filter</option></select></div>
+                        <div><label class="o_form_label">Quantity</label><input type="number" name="quantity" class="o_input" value="1"></div>
+                        <div><label class="o_form_label">Mechanic Name</label><input type="text" name="mechanic_name" class="o_input"></div>
+                        <div><label class="o_form_label">Next Due (KM)</label><input type="number" name="next_due_km" class="o_input"></div>
+                        <div><label class="o_form_label">Next Due Date</label><input type="date" name="next_due_date" class="o_input"></div>
+                    </div>
+                </div>
+
+                <!-- Tire Change -->
+                <div id="tireChangeFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-tire"></i> Tire Change Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Tire Position</label><select name="tire_position" class="o_select"><option>Front Left</option><option>Front Right</option><option>Rear Left</option><option>Rear Right</option><option>All Four</option><option>Spare</option></select></div>
+                        <div><label class="o_form_label">Tire Brand</label><input type="text" name="tire_brand" class="o_input"></div>
+                        <div><label class="o_form_label">Tire Size</label><input type="text" name="tire_size" class="o_input" placeholder="185/65R14"></div>
+                        <div><label class="o_form_label">Quantity</label><input type="number" name="quantity" class="o_input" value="1" id="tireQty"></div>
+                        <div><label class="o_form_label">Cost per Tire (PKR)</label><input type="number" step="0.01" name="cost_per_tire" class="o_input" id="tirePrice"></div>
+                        <div><label class="o_form_label">Next Rotation (KM)</label><input type="number" name="next_rotation_km" class="o_input"></div>
+                        <div><label class="o_form_label">Workshop Name</label><input type="text" name="workshop_name" class="o_input"></div>
+                        <div><div class="o_checkbox_group"><input type="checkbox" name="alignment_done" value="1" class="o_checkbox"> <label>Wheel Alignment Done</label></div></div>
+                        <div><div class="o_checkbox_group"><input type="checkbox" name="balancing_done" value="1" class="o_checkbox"> <label>Wheel Balancing Done</label></div></div>
+                        <div class="o_full_width"><label class="o_form_label">Old Tire Condition</label><textarea name="old_tire_condition" class="o_input" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <!-- Tuning -->
+                <div id="tuningFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-sliders-h"></i> Tuning Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Tuning Type</label><select name="tuning_type" class="o_select"><option>Engine Tuning</option><option>ECU Remap</option><option>Performance Tuning</option><option>Fuel System Tuning</option></select></div>
+                        <div><label class="o_form_label">Technician Name</label><input type="text" name="technician_name" class="o_input"></div>
+                        <div><label class="o_form_label">Before Performance</label><input type="text" name="before_performance" class="o_input" placeholder="120 HP"></div>
+                        <div><label class="o_form_label">After Performance</label><input type="text" name="after_performance" class="o_input" placeholder="150 HP"></div>
+                    </div>
+                </div>
+
+                <!-- Electrical Work -->
+                <div id="electricalFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-bolt"></i> Electrical Work Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Work Type</label><select name="work_type" class="o_select"><option>Wiring Repair</option><option>Lighting System</option><option>Battery Replacement</option><option>Alternator Repair</option><option>Starter Motor</option><option>Fuse Box</option><option>Sensors</option><option>Dashboard Repair</option><option>AC Electrical</option></select></div>
+                        <div><label class="o_form_label">Technician Name</label><input type="text" name="technician_name" class="o_input"></div>
+                        <div><label class="o_form_label">Hours Spent</label><input type="number" step="0.5" name="hours_spent" class="o_input"></div>
+                        <div class="o_full_width"><label class="o_form_label">Parts Used</label><textarea name="parts_used" class="o_input" rows="2" placeholder="List replaced parts..."></textarea></div>
+                    </div>
+                </div>
+
+                <!-- Body Work -->
+                <div id="bodyWorkFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-paint-brush"></i> Body Work Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Work Type</label><select name="work_type" class="o_select"><option>Denting</option><option>Painting</option><option>Bumper Repair</option><option>Windshield Replacement</option><option>Door Repair</option><option>Frame Straightening</option><option>Rust Removal</option><option>Full Body Paint</option><option>Ceramic Coating</option></select></div>
+                        <div><label class="o_form_label">Workshop Name</label><input type="text" name="workshop_name" class="o_input"></div>
+                        <div><label class="o_form_label">Painter Name</label><input type="text" name="painter_name" class="o_input"></div>
+                        <div><label class="o_form_label">Color Code</label><input type="text" name="color_code" class="o_input" placeholder="#FF0000"></div>
+                        <div><label class="o_form_label">Panels Repaired</label><input type="text" name="panels_repaired" class="o_input" placeholder="Front bumper, left door"></div>
+                        <div><label class="o_form_label">Warranty (months)</label><input type="number" name="warranty_months" class="o_input" value="6"></div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="o_form_actions">
+                    <button type="submit" class="o_btn_primary"><i class="fas fa-save"></i> Save Record</button>
+                    <button type="reset" class="o_btn_secondary"><i class="fas fa-undo-alt"></i> Reset</button>
+                    <a href="{{ url_for('maintenance.history') }}" class="o_btn_link"><i class="fas fa-history"></i> View History</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue / White) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --required-red: #DC2626;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-maintenance-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.8rem;
+    }
+    /* Form Grid */
+    .o_form_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.2rem;
+        margin-bottom: 1rem;
+    }
+    .o_grid_3cols {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .o_field_group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .o_full_width {
+        grid-column: 1 / -1;
+    }
+    .o_form_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+    }
+    .o_required {
+        color: var(--required-red);
+    }
+    .o_select, .o_input, .o_input_currency_field {
+        width: 100%;
+        padding: 0.65rem 0.9rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        background: white;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.9rem;
+        pointer-events: none;
+    }
+    .o_input_wrapper .o_input {
+        padding-left: 2.2rem;
+    }
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        background: white;
+        padding-left: 0.5rem;
+    }
+    .o_input_currency .o_currency_symbol {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+        padding-right: 0.3rem;
+    }
+    .o_input_currency input {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+    }
+    .o_select:focus, .o_input:focus, .o_input_currency:focus-within {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    /* Dynamic Sections */
+    .o_dynamic_section {
+        margin-top: 1.8rem;
+        background: #F9FBFE;
+        border-radius: 16px;
+        padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+        border: 1px solid var(--odoo-border);
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+    }
+    .o_checkbox_group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .o_checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--odoo-primary);
+    }
+    /* Form Actions */
+    .o_form_actions {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        border-top: 1px solid var(--odoo-border);
+        padding-top: 1.5rem;
+    }
+    .o_btn_primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .o_btn_primary:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    .o_btn_secondary {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        transition: 0.2s;
+        cursor: pointer;
+    }
+    .o_btn_secondary:hover {
+        background: #F1F5F9;
+    }
+    .o_btn_link {
+        background: transparent;
+        color: var(--odoo-primary-light);
+        text-decoration: none;
+        font-weight: 500;
+        margin-left: auto;
+        transition: 0.2s;
+    }
+    .o_btn_link:hover {
+        color: var(--odoo-primary);
+        text-decoration: underline;
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-maintenance-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_form_grid {
+            gap: 0.8rem;
+        }
+        .o_form_actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_btn_link {
+            margin-left: 0;
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    (function() {
+        'use strict';
+
+        const typeSelect = document.getElementById('maintenanceType');
+        const sections = {
+            oil_change: document.getElementById('oilChangeFields'),
+            filter_change: document.getElementById('filterChangeFields'),
+            tire_change: document.getElementById('tireChangeFields'),
+            tuning: document.getElementById('tuningFields'),
+            electrical: document.getElementById('electricalFields'),
+            body_work: document.getElementById('bodyWorkFields')
+        };
+
+        function showSection(selected) {
+            Object.values(sections).forEach(section => {
+                if (section) section.style.display = 'none';
+            });
+            if (selected && sections[selected]) {
+                sections[selected].style.display = 'block';
+            }
+        }
+
+        if (typeSelect) {
+            typeSelect.addEventListener('change', function(e) {
+                showSection(e.target.value);
+                // Auto-calculate tire total cost
+                if (e.target.value === 'tire_change') {
+                    updateTireCost();
+                }
+            });
+            // trigger on load if pre-selected
+            showSection(typeSelect.value);
+        }
+
+        // Tire total cost helper
+        const tireQty = document.getElementById('tireQty');
+        const tirePrice = document.getElementById('tirePrice');
+        const costField = document.querySelector('input[name="cost"]');
+        function updateTireCost() {
+            if (typeSelect.value === 'tire_change' && costField) {
+                let qty = parseFloat(tireQty?.value) || 0;
+                let price = parseFloat(tirePrice?.value) || 0;
+                let total = qty * price;
+                if (total > 0 && costField && !costField.value) {
+                    costField.value = total.toFixed(2);
+                }
+            }
+        }
+        if (tireQty && tirePrice) {
+            tireQty.addEventListener('input', updateTireCost);
+            tirePrice.addEventListener('input', updateTireCost);
+        }
+
+        // Reset button behavior – clear all dynamic sections + common fields
+        const resetBtn = document.querySelector('button[type="reset"]');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('maintenanceForm').reset();
+                showSection('');
+                // clear any visible dynamic fields
+                Object.values(sections).forEach(s => { if(s) s.style.display = 'none'; });
+                costField.value = '';
+            });
+        }
+
+        // Refresh button
+        const refreshBtn = document.getElementById('refreshForm');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => window.location.reload());
+        }
+    })();
+</script>
+{% endblock %}

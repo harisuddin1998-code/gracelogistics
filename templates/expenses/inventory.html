@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-inventory-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Inventory</a></li>
+                    <li class="breadcrumb-item active">Spare Parts</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('expense.add_inventory') }}" class="btn btn-primary o_cp_button">
+                    <i class="fas fa-plus-circle"></i> New Part
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshInventory">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-boxes me-2"></i> Spare Parts Inventory
+            <span class="o_header_badge">Stock overview</span>
+        </div>
+        <div class="o_card_body">
+            <!-- KPI Metrics (Odoo Cards) -->
+            <div class="o_kpi_grid">
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-info">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ stats.total_parts }}</div>
+                    <div class="o_kpi_label">Total Parts</div>
+                    <div class="o_kpi_sub">Unique SKUs</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ stats.low_stock_count }}</div>
+                    <div class="o_kpi_label">Low Stock</div>
+                    <div class="o_kpi_sub">Below reorder level</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-danger">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ stats.out_of_stock_count }}</div>
+                    <div class="o_kpi_label">Out of Stock</div>
+                    <div class="o_kpi_sub">Zero quantity</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-success">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.0f}".format(stats.total_value) }}</div>
+                    <div class="o_kpi_label">Total Value</div>
+                    <div class="o_kpi_sub">Inventory worth</div>
+                </div>
+            </div>
+
+            <!-- Inventory Table -->
+            <div class="o_table_section">
+                <div class="o_section_title">
+                    <i class="fas fa-list-ul"></i> Parts Inventory List
+                </div>
+                <div class="table-responsive">
+                    <table class="o_data_table o_data_table_hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Part Name</th>
+                                <th>Part Number</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                                <th>Reorder Level</th>
+                                <th>Unit Cost</th>
+                                <th>Location</th>
+                                <th>Supplier</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory %}
+                            <tr class="o_data_row 
+                                {% if item.quantity_in_stock <= 0 %}o_row_outstock
+                                {% elif item.quantity_in_stock <= item.reorder_level %}o_row_lowstock{% endif %}">
+                                <td><span class="o_id_badge">{{ item.part_id }}</span></td>
+                                <td><strong>{{ item.part_name }}</strong></td>
+                                <td>{{ item.part_number }}</td>
+                                <td>{{ item.category|default('—') }}</td>
+                                <td>
+                                    <span class="o_stock_badge 
+                                        {% if item.quantity_in_stock <= 0 %}o_stock_critical
+                                        {% elif item.quantity_in_stock <= item.reorder_level %}o_stock_warning
+                                        {% else %}o_stock_ok{% endif %}">
+                                        {{ item.quantity_in_stock }}
+                                    </span>
+                                </td>
+                                <td>{{ item.reorder_level }}</td>
+                                <td>PKR {{ "{:,.2f}".format(item.unit_cost) }}</td>
+                                <td>{{ item.location|default('—') }}</td>
+                                <td>{{ item.supplier_name|default('—') }}</td>
+                                <td>
+                                    {% if item.quantity_in_stock <= 0 %}
+                                        <span class="o_status_badge o_status_critical"><i class="fas fa-circle me-1"></i> Out of Stock</span>
+                                    {% elif item.quantity_in_stock <= item.reorder_level %}
+                                        <span class="o_status_badge o_status_warning"><i class="fas fa-exclamation me-1"></i> Low Stock</span>
+                                    {% else %}
+                                        <span class="o_status_badge o_status_ok"><i class="fas fa-check-circle me-1"></i> In Stock</span>
+                                    {% endif %}
+                                 </td>
+                                <td class="text-end">
+                                    <div class="o_action_btns">
+                                        <a href="{{ url_for('expense.edit_inventory', part_id=item.part_id) }}" class="o_icon_btn" title="Edit Item">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <a href="{{ url_for('expense.delete_inventory', part_id=item.part_id) }}" class="o_icon_btn o_icon_rose" title="Delete Item" onclick="return confirm('Delete this item permanently?')">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">No parts found. Click "New Part" to add your first inventory item.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-inventory-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button.btn-primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+    }
+    .o_cp_button.btn-primary:hover {
+        background: #1E40AF;
+    }
+    .o_cp_button.btn-outline-secondary:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.5rem 1.8rem;
+    }
+    /* KPI Cards Grid */
+    .o_kpi_grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    .o_kpi_card {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        border-radius: 20px;
+        padding: 1rem 0.8rem;
+        flex: 1 1 180px;
+        text-align: center;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .o_kpi_card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+    .o_kpi_icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-danger { background: #FEF2F2; color: #B91C1C; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .o_kpi_value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--odoo-text);
+        line-height: 1.2;
+    }
+    .o_kpi_label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+        margin-top: 0.3rem;
+    }
+    .o_kpi_sub {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    /* Table Section */
+    .o_table_section {
+        margin-top: 0.5rem;
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .o_data_table thead th {
+        background: #F9FBFE;
+        padding: 0.85rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--odoo-text-light);
+        border-bottom: 1px solid var(--odoo-border);
+        text-align: left;
+    }
+    .o_data_row td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+    .o_data_table_hover .o_data_row:hover td {
+        background-color: #F8FAFE;
+    }
+    .o_row_lowstock {
+        background-color: #FFFBEB;
+    }
+    .o_row_outstock {
+        background-color: #FEF2F2;
+    }
+    .o_id_badge {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        background: #EFF6FF;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        display: inline-block;
+    }
+    .o_stock_badge {
+        display: inline-block;
+        font-weight: 700;
+        padding: 0.25rem 0.7rem;
+        border-radius: 40px;
+        font-size: 0.8rem;
+    }
+    .o_stock_ok {
+        background: #E6F7EC;
+        color: #0A6E43;
+    }
+    .o_stock_warning {
+        background: #FFF4E5;
+        color: #C17B0E;
+    }
+    .o_stock_critical {
+        background: #FEE2E2;
+        color: #B91C1C;
+    }
+    .o_status_badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.8rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    .o_status_ok {
+        background: #E6F7EC;
+        color: #0A6E43;
+    }
+    .o_status_warning {
+        background: #FFF4E5;
+        color: #C17B0E;
+    }
+    .o_status_critical {
+        background: #FEE2E2;
+        color: #B91C1C;
+    }
+    /* Action Buttons */
+    .o_actions_cell {
+        white-space: nowrap;
+    }
+    .o_action_btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-decoration: none;
+        margin: 0 0.2rem;
+        transition: all 0.2s;
+    }
+    .o_action_edit {
+        background: #EFF6FF;
+        color: var(--odoo-primary);
+        border: 1px solid #DBEAFE;
+    }
+    .o_action_edit:hover {
+        background: var(--odoo-primary);
+        color: white;
+    }
+    .o_action_delete {
+        background: #FEE2E2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+    }
+    .o_action_delete:hover {
+        background: #B91C1C;
+        color: white;
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-inventory-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_kpi_grid {
+            gap: 0.8rem;
+        }
+        .o_kpi_card {
+            min-width: 140px;
+        }
+        .o_data_table thead th, .o_data_row td {
+            padding: 0.6rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .o_actions_cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+        .o_action_btn {
+            padding: 0.2rem 0.5rem;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('refreshInventory')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

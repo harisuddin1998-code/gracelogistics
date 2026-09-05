@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-report-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Reports</a></li>
+                    <li class="breadcrumb-item active">Expense Summary</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="printReport">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshReport">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-chart-pie me-2"></i> Monthly Expense Summary by Vehicle
+            <span class="o_header_badge">Cost analysis</span>
+        </div>
+        <div class="o_card_body">
+            <!-- Filter Bar (Odoo style) -->
+            <div class="o_filter_bar">
+                <form method="GET" class="o_filter_form">
+                    <div class="o_filter_row">
+                        <div class="o_filter_group">
+                            <label class="o_filter_label"><i class="fas fa-calendar-alt"></i> Select Month</label>
+                            <div class="o_input_wrapper">
+                                <i class="fas fa-calendar-month o_field_icon"></i>
+                                <input type="month" name="month" class="o_input" value="{{ month }}">
+                            </div>
+                        </div>
+                        <div class="o_filter_actions">
+                            <button type="submit" class="o_btn_primary_small"><i class="fas fa-search"></i> Filter</button>
+                            <a href="{{ url_for('report.expense_summary') }}" class="o_btn_secondary_small"><i class="fas fa-times"></i> Reset</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- KPI Metrics Row -->
+            <div class="o_kpi_grid">
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-info">
+                        <i class="fas fa-gas-pump"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.2f}".format(total_fuel) }}</div>
+                    <div class="o_kpi_label">Total Fuel Cost</div>
+                    <div class="o_kpi_sub">Refueling expenses</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-warning">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.2f}".format(total_maintenance) }}</div>
+                    <div class="o_kpi_label">Maintenance</div>
+                    <div class="o_kpi_sub">Repairs & services</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-success">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.2f}".format(total_parts) }}</div>
+                    <div class="o_kpi_label">Spare Parts</div>
+                    <div class="o_kpi_sub">Part replacements</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-danger">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.2f}".format(grand_total) }}</div>
+                    <div class="o_kpi_label">GRAND TOTAL</div>
+                    <div class="o_kpi_sub">All expenses</div>
+                </div>
+            </div>
+
+            <!-- Expense Table -->
+            <div class="o_table_section">
+                <div class="o_section_title">
+                    <i class="fas fa-table-list"></i> Detailed Breakdown by Vehicle
+                </div>
+                <div class="table-responsive">
+                    <table class="o_data_table o_data_table_striped" id="expenseTable">
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th>Fuel Cost (PKR)</th>
+                                <th>Maintenance Cost (PKR)</th>
+                                <th>Spare Parts Cost (PKR)</th>
+                                <th>Total Expense (PKR)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in summary %}
+                            <tr class="o_data_row">
+                                <td><strong>{{ item.vehicle }}</strong></td>
+                                <td>{{ "{:,.2f}".format(item.fuel_cost) }}</td>
+                                <td>{{ "{:,.2f}".format(item.maintenance_cost) }}</td>
+                                <td>{{ "{:,.2f}".format(item.parts_cost) }}</td>
+                                <td><strong>{{ "{:,.2f}".format(item.total) }}</strong></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No expense data available for selected month</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="o_table_footer">
+                                <th>GRAND TOTAL</th>
+                                <th>{{ "{:,.2f}".format(total_fuel) }}</th>
+                                <th>{{ "{:,.2f}".format(total_maintenance) }}</th>
+                                <th>{{ "{:,.2f}".format(total_parts) }}</th>
+                                <th>{{ "{:,.2f}".format(grand_total) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Print Action -->
+            <div class="o_print_action">
+                <button onclick="window.print()" class="o_btn_secondary">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-report-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.5rem 1.8rem;
+    }
+    /* Filter Bar */
+    .o_filter_bar {
+        background: #F9FBFE;
+        border-radius: 18px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 1.8rem;
+        border: 1px solid var(--odoo-border);
+    }
+    .o_filter_row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+    .o_filter_group {
+        flex: 1;
+        min-width: 180px;
+    }
+    .o_filter_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--odoo-text-light);
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .o_input {
+        width: 100%;
+        padding: 0.55rem 0.9rem 0.55rem 2rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    .o_input:focus {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    .o_filter_actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.2rem;
+    }
+    .o_btn_primary_small, .o_btn_secondary_small {
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .o_btn_primary_small {
+        background: var(--odoo-primary);
+        color: white;
+    }
+    .o_btn_primary_small:hover {
+        background: #1E40AF;
+    }
+    .o_btn_secondary_small {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+    }
+    .o_btn_secondary_small:hover {
+        background: #F1F5F9;
+    }
+    /* KPI Cards */
+    .o_kpi_grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        margin-bottom: 1.8rem;
+    }
+    .o_kpi_card {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        border-radius: 20px;
+        padding: 1rem 0.8rem;
+        flex: 1 1 180px;
+        text-align: center;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .o_kpi_card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+    .o_kpi_icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .bg-soft-danger { background: #FEF2F2; color: #B91C1C; }
+    .o_kpi_value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--odoo-text);
+        line-height: 1.2;
+    }
+    .o_kpi_label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+        margin-top: 0.3rem;
+    }
+    .o_kpi_sub {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    /* Table Section */
+    .o_table_section {
+        margin-top: 0.5rem;
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .o_data_table thead th {
+        background: #F9FBFE;
+        padding: 0.8rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--odoo-text-light);
+        border-bottom: 1px solid var(--odoo-border);
+        text-align: left;
+    }
+    .o_data_row td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+    .o_data_table_striped .o_data_row:nth-child(even) td {
+        background-color: #FCFDFF;
+    }
+    .o_table_footer {
+        background: #F1F5F9;
+        font-weight: 700;
+    }
+    .o_table_footer th, .o_table_footer td {
+        padding: 0.8rem 1rem;
+        border-top: 1px solid var(--odoo-border);
+    }
+    /* Print Action */
+    .o_print_action {
+        margin-top: 1.5rem;
+        text-align: right;
+        border-top: 1px solid var(--odoo-border);
+        padding-top: 1.2rem;
+    }
+    .o_btn_secondary {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+    .o_btn_secondary:hover {
+        background: #F1F5F9;
+    }
+    /* Print Styles */
+    @media print {
+        .o_control_panel, .o_filter_bar, .o_print_action, .o_cp_button, .btn, .no-print {
+            display: none;
+        }
+        .o_card {
+            box-shadow: none;
+            border: none;
+            padding: 0;
+        }
+        .o_card_body {
+            padding: 0;
+        }
+        body {
+            background: white;
+            padding: 0.2in;
+        }
+        .odoo-report-container {
+            padding: 0;
+            margin: 0;
+        }
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-report-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_kpi_grid {
+            gap: 0.8rem;
+        }
+        .o_kpi_card {
+            min-width: 140px;
+        }
+        .o_filter_row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_filter_actions {
+            justify-content: flex-start;
+        }
+        .o_data_table thead th, .o_data_row td {
+            padding: 0.6rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('printReport')?.addEventListener('click', function() {
+        window.print();
+    });
+    document.getElementById('refreshReport')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

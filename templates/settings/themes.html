@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-theme-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Settings</a></li>
+                    <li class="breadcrumb-item active">Theme Settings</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshThemes">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-palette me-2"></i> Theme Settings
+            <span class="o_header_badge">Personalize your workspace</span>
+        </div>
+        <div class="o_card_body">
+            <div class="o_theme_intro">
+                <h5>Select Your Preferred Theme</h5>
+                <p class="text-muted">Choose from professionally designed colour schemes that match your brand or mood.</p>
+            </div>
+
+            <!-- Theme Grid -->
+            <div class="o_theme_grid" id="theme-grid">
+                <!-- Themes will be populated by JavaScript -->
+            </div>
+
+            <!-- Info Note -->
+            <div class="o_info_note">
+                <i class="fas fa-info-circle"></i>
+                <span>Theme preference is saved in your browser. Click the floating "Theme" button at the bottom‑right corner to change themes quickly.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Theme definitions – matches base.html theme system
+const themeList = [
+    { id: 'windows11', name: 'Windows 11 Light', icon: 'fas fa-sun', previewColor: '#ffffff', accentColor: '#0078d4' },
+    { id: 'windows11-dark', name: 'Windows 11 Dark', icon: 'fas fa-moon', previewColor: '#1c1c1c', accentColor: '#2d2d2d' },
+    { id: 'classic', name: 'Windows Classic', icon: 'fas fa-desktop', previewColor: '#ece9d8', accentColor: '#3a6ea5' },
+    { id: 'corporate', name: 'Corporate Blue', icon: 'fas fa-building', previewColor: '#f0f5f9', accentColor: '#2980b9' },
+    { id: 'nature', name: 'Nature Green', icon: 'fas fa-leaf', previewColor: '#e8f5e9', accentColor: '#2ecc71' },
+    { id: 'sunset', name: 'Sunset Orange', icon: 'fas fa-sun', previewColor: '#fff3e0', accentColor: '#e67e22' },
+    { id: 'purple', name: 'Royal Purple', icon: 'fas fa-crown', previewColor: '#f3e5f5', accentColor: '#9b59b6' },
+    { id: 'ocean', name: 'Ocean Teal', icon: 'fas fa-water', previewColor: '#e0f2f1', accentColor: '#16a085' }
+];
+
+function renderThemeGrid() {
+    const grid = document.getElementById('theme-grid');
+    if (!grid) return;
+
+    const currentTheme = localStorage.getItem('selectedTheme') || 'windows11';
+
+    grid.innerHTML = themeList.map(theme => `
+        <div class="o_theme_card ${currentTheme === theme.id ? 'active' : ''}" 
+             data-theme-id="${theme.id}"
+             onclick="selectTheme('${theme.id}')">
+            <div class="o_theme_preview" style="background-color: ${theme.previewColor}; border-bottom: 3px solid ${theme.accentColor};">
+                <i class="${theme.icon}" style="color: ${theme.accentColor};"></i>
+            </div>
+            <div class="o_theme_info">
+                <div class="o_theme_name">${theme.name}</div>
+                <div class="o_theme_status">${currentTheme === theme.id ? '✓ Active' : 'Click to apply'}</div>
+            </div>
+            ${currentTheme === theme.id ? '<div class="o_theme_active_check"><i class="fas fa-check-circle"></i></div>' : ''}
+        </div>
+    `).join('');
+}
+
+function selectTheme(themeId) {
+    if (typeof window.setTheme === 'function') {
+        window.setTheme(themeId);
+        // Show a subtle toast notification (optional)
+        showNotification(`Theme changed to ${themeList.find(t => t.id === themeId)?.name || themeId}`);
+    } else {
+        // Fallback: store and reload
+        localStorage.setItem('selectedTheme', themeId);
+        window.location.reload();
+    }
+    renderThemeGrid();
+}
+
+function showNotification(message) {
+    // Simple non-intrusive alert replacement (you can use a toast later)
+    const existing = document.querySelector('.o_theme_toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'o_theme_toast';
+    toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+
+// Render on load
+document.addEventListener('DOMContentLoaded', renderThemeGrid);
+
+// Refresh button reloads the page
+document.getElementById('refreshThemes')?.addEventListener('click', () => {
+    window.location.reload();
+});
+</script>
+
+<style>
+/* Odoo Theme Settings Styles */
+:root {
+    --odoo-primary: #1E3A8A;
+    --odoo-primary-light: #3B82F6;
+    --odoo-bg: #F3F6FC;
+    --odoo-card-bg: #FFFFFF;
+    --odoo-border: #E9EDF2;
+    --odoo-text: #1F2A44;
+    --odoo-text-light: #5A6E8A;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+}
+body {
+    background-color: var(--odoo-bg);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.odoo-theme-container {
+    max-width: 1200px;
+    margin: 1.5rem auto;
+    padding: 0 1.5rem;
+}
+/* Control Panel */
+.o_control_panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.o_cp_breadcrumbs .breadcrumb {
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+}
+.breadcrumb-item a {
+    color: var(--odoo-primary);
+    text-decoration: none;
+}
+.breadcrumb-item.active {
+    color: var(--odoo-text-light);
+    font-weight: 500;
+}
+.o_cp_button {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--odoo-border);
+    background: white;
+    color: var(--odoo-text);
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+.o_cp_button:hover {
+    background: var(--odoo-primary);
+    color: white;
+    border-color: var(--odoo-primary);
+}
+/* Main Card */
+.o_card {
+    background: var(--odoo-card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--odoo-border);
+    overflow: hidden;
+}
+.o_card_header {
+    padding: 1rem 1.8rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--odoo-text);
+    border-bottom: 1px solid var(--odoo-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    background: white;
+}
+.o_header_badge {
+    background: #F1F5F9;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.25rem 0.8rem;
+    border-radius: 30px;
+    color: #475569;
+}
+.o_card_body {
+    padding: 1.8rem;
+}
+/* Intro */
+.o_theme_intro h5 {
+    margin-bottom: 0.3rem;
+    color: var(--odoo-text);
+}
+.o_theme_intro p {
+    color: var(--odoo-text-light);
+    margin-bottom: 1.5rem;
+}
+/* Theme Grid */
+.o_theme_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.2rem;
+    margin: 1.5rem 0;
+}
+.o_theme_card {
+    background: white;
+    border: 1px solid var(--odoo-border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    position: relative;
+}
+.o_theme_card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--odoo-primary-light);
+}
+.o_theme_card.active {
+    border-color: var(--odoo-primary);
+    background: #F8FAFE;
+}
+.o_theme_preview {
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    transition: all 0.2s;
+}
+.o_theme_info {
+    padding: 0.8rem;
+    text-align: center;
+}
+.o_theme_name {
+    font-weight: 600;
+    color: var(--odoo-text);
+    font-size: 0.85rem;
+}
+.o_theme_status {
+    font-size: 0.7rem;
+    color: var(--odoo-text-light);
+    margin-top: 0.2rem;
+}
+.o_theme_active_check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: var(--odoo-primary);
+    font-size: 1.2rem;
+}
+/* Info Note */
+.o_info_note {
+    background: #F0F9FF;
+    border-radius: 14px;
+    padding: 0.8rem 1rem;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--odoo-text);
+    border-left: 3px solid var(--odoo-primary);
+}
+.o_info_note i {
+    color: var(--odoo-primary);
+    font-size: 1rem;
+}
+/* Toast notification */
+.o_theme_toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #1E3A8A;
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.o_theme_toast.show {
+    opacity: 1;
+}
+/* Responsive */
+@media (max-width: 768px) {
+    .odoo-theme-container {
+        padding: 0.5rem;
+    }
+    .o_card_body {
+        padding: 1rem;
+    }
+    .o_theme_grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.8rem;
+    }
+    .o_theme_preview {
+        height: 80px;
+        font-size: 1.6rem;
+    }
+}
+</style>
+{% endblock %}

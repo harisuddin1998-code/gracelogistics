@@ -1,0 +1,704 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-main-container">
+    <!-- Odoo-style Form View -->
+    <div class="o_form_view">
+        <!-- Header: Action Buttons (Enterprise Style) -->
+        <div class="o_form_buttons_container">
+            <div class="o_form_buttons_edit">
+                <button type="button" id="btnDiscardTop" class="btn btn-secondary o_btn_discard">
+                    <i class="fas fa-times"></i> Discard
+                </button>
+                <button type="button" id="btnSaveTop" class="btn btn-primary o_btn_save">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Form Sheet (White / Blue Corporate) -->
+        <div class="o_form_sheet">
+            <!-- Driver Title & Avatar section -->
+            <div class="o_form_sheet_header">
+                <div class="o_avatar_container">
+                    <div class="o_vehicle_avatar">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                </div>
+                <div class="o_title_editable">
+                    <h1>New Driver <span class="o_subtitle">Create new driver profile</span></h1>
+                    <div class="o_status_badge">
+                        <span class="badge bg-primary-soft text-primary">Draft</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" id="driverForm" novalidate>
+                <!-- Driver Code prominent row (Blue accent) -->
+                <div class="o_form_uri_area">
+                    <div class="o_row o_row_registration">
+                        <div class="o_field_widget o_field_registration">
+                            <label class="o_form_label">Driver Name <span class="o_required">*</span></label>
+                            <div class="o_input_wrapper">
+                                <i class="fas fa-user o_field_icon"></i>
+                                <input type="text" name="full_name" id="full_name" 
+                                       class="o_input_capitalize" placeholder="e.g., Muhammad Ali" required autofocus>
+                            </div>
+                            <span class="o_field_help">Full name as per official ID</span>
+                        </div>
+                        <div class="o_field_widget o_field_system_id">
+                            <label class="o_form_label">Driver ID</label>
+                            <div class="o_system_id_badge">
+                                <span>Auto‑generated</span>
+                                <i class="fas fa-database ms-1"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two column groups: Odoo Group styling -->
+                <div class="o_group o_inner_group">
+                    <!-- Left Column: Personal Information -->
+                    <div class="o_group_column">
+                        <div class="o_group_name">
+                            <i class="fas fa-id-card me-2"></i> Personal Information
+                        </div>
+                        <div class="o_group_fields">
+                            <div class="o_row">
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">License Number <span class="o_required">*</span></label>
+                                    <input type="text" name="license_no" class="o_input" placeholder="e.g., DL-1234567890" required>
+                                </div>
+                            </div>
+                            <div class="o_row">
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Phone Number <span class="o_required">*</span></label>
+                                    <div class="o_input_currency">
+                                        <span class="o_currency_symbol"><i class="fas fa-phone-alt"></i></span>
+                                        <input type="tel" name="phone" placeholder="03XXXXXXXXX" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_row">
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Email Address</label>
+                                    <div class="o_input_currency">
+                                        <span class="o_currency_symbol"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" name="email" placeholder="driver@example.com">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_row">
+                                <div class="o_field_widget">
+                                    <label class="o_form_label">Status</label>
+                                    <select name="status" class="o_select o_status_select">
+                                        <option value="Active">✅ Active</option>
+                                        <option value="Inactive">⭕ Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Employment & Financial -->
+                    <div class="o_group_column">
+                        <div class="o_group_name">
+                            <i class="fas fa-briefcase me-2"></i> Employment Details
+                        </div>
+                        <div class="o_group_fields">
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Joining Date <span class="o_required">*</span></label>
+                                <input type="date" name="joining_date" class="o_input" required>
+                            </div>
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Base Salary (PKR) <span class="o_required">*</span></label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol">₨</span>
+                                    <input type="number" step="0.01" name="base_salary" placeholder="0.00" required>
+                                </div>
+                                <span class="o_field_help">Monthly base salary amount</span>
+                            </div>
+                            <div class="o_field_widget">
+                                <label class="o_form_label">Advance Balance (PKR)</label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol">₨</span>
+                                    <input type="number" step="0.01" name="advance_balance" placeholder="0.00" value="0">
+                                </div>
+                                <span class="o_field_help">Current advance deductions if any</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address & Additional Info Group -->
+                <div class="o_group o_group_financial">
+                    <div class="o_group_name">
+                        <i class="fas fa-map-marker-alt me-2"></i> Address & Additional Information
+                    </div>
+                    <div class="o_group_fields o_group_3_cols">
+                        <div class="o_field_widget">
+                            <label class="o_form_label">Street Address</label>
+                            <textarea name="address" class="o_input o_textarea" rows="3" placeholder="House #, Street, Area"></textarea>
+                        </div>
+                        <div class="o_field_widget">
+                            <label class="o_form_label">City</label>
+                            <input type="text" name="city" class="o_input" placeholder="e.g., Karachi">
+                        </div>
+                        <div class="o_field_widget">
+                            <label class="o_form_label">Emergency Contact</label>
+                            <input type="text" name="emergency_contact" class="o_input" placeholder="Emergency phone number">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Chatter component (internal notes area) -->
+                <div class="o_chatter_wrapper">
+                    <div class="o_chatter_top">
+                        <i class="fas fa-comments"></i> <strong>Chatter</strong> <span class="badge o_chatter_badge">Activity & Notes</span>
+                    </div>
+                    <div class="o_chatter_content">
+                        <div class="o_message_item">
+                            <i class="fas fa-clock"></i> <span class="o_msg_text">System: New driver record ready for submission</span>
+                        </div>
+                        <div class="o_message_item">
+                            <i class="fas fa-info-circle"></i> <span class="o_msg_text">Information: All mandatory fields (*) are required</span>
+                        </div>
+                        <div class="o_message_fake_input">
+                            <i class="fas fa-pen-alt"></i> <span>Log an internal note ...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div class="o_form_bottom_buttons">
+                    <div class="o_button_panel">
+                        <a href="{{ url_for('driver.list_drivers') }}" class="btn o_btn_cancel_footer">
+                            <i class="fas fa-ban"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn o_btn_save_footer" id="submitBtnFooter">
+                            <i class="fas fa-save"></i> Save & Close
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Professional White & Blue Theme (Odoo‑inspired) -->
+<style>
+    :root {
+        --primary-blue: #1E3A8A;    /* deep corporate blue */
+        --primary-light: #3B82F6;   /* vibrant accent */
+        --primary-soft-bg: #EFF6FF;  /* light blue background */
+        --gray-bg: #F8FAFC;
+        --card-white: #FFFFFF;
+        --border-light: #E2E8F0;
+        --text-dark: #0F172A;
+        --text-muted: #475569;
+        --required-red: #DC2626;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+
+    body {
+        background-color: var(--gray-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .odoo-main-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+
+    /* Main Form View */
+    .o_form_view {
+        position: relative;
+    }
+
+    /* Top buttons bar */
+    .o_form_buttons_container {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_form_buttons_edit {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .o_btn_discard, .o_btn_save {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .o_btn_discard {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_discard:hover {
+        background-color: #F1F5F9;
+        border-color: #CBD5E1;
+    }
+
+    .o_btn_save {
+        background-color: var(--primary-blue);
+        color: white;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .o_btn_save:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    /* Form Sheet Card */
+    .o_form_sheet {
+        background: var(--card-white);
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        padding: 2rem 2rem 1.5rem 2rem;
+        border: 1px solid var(--border-light);
+    }
+
+    /* Header with avatar */
+    .o_form_sheet_header {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
+        border-bottom: 2px solid var(--border-light);
+    }
+
+    .o_vehicle_avatar {
+        width: 68px;
+        height: 68px;
+        background: var(--primary-soft-bg);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--primary-blue);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+
+    .o_title_editable h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-dark);
+    }
+
+    .o_subtitle {
+        font-size: 0.85rem;
+        font-weight: 400;
+        color: var(--text-muted);
+        margin-left: 0.5rem;
+    }
+
+    .o_status_badge .badge {
+        background-color: var(--primary-soft-bg);
+        color: var(--primary-blue);
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.9rem;
+        border-radius: 40px;
+    }
+
+    /* Registration row (light blue accent) */
+    .o_row_registration {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        background: var(--primary-soft-bg);
+        padding: 1.25rem 1.5rem;
+        border-radius: 18px;
+        border: 1px solid #DBEAFE;
+    }
+
+    .o_field_registration {
+        flex: 2;
+    }
+
+    .o_field_system_id {
+        flex: 1;
+    }
+
+    .o_input_wrapper {
+        position: relative;
+    }
+
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-blue);
+    }
+
+    .o_input_capitalize {
+        width: 100%;
+        padding: 0.7rem 1rem 0.7rem 2.3rem;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.2s;
+        background-color: var(--card-white);
+    }
+
+    .o_input_capitalize:focus {
+        border-color: var(--primary-light);
+        outline: none;
+        box-shadow: var(--focus-shadow);
+    }
+
+    .o_system_id_badge {
+        background-color: var(--card-white);
+        border-radius: 40px;
+        padding: 0.7rem 1rem;
+        text-align: center;
+        font-weight: 500;
+        color: var(--primary-blue);
+        border: 1px dashed var(--primary-light);
+        font-size: 0.9rem;
+    }
+
+    /* Groups layout */
+    .o_group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .o_group_column {
+        flex: 1;
+        min-width: 260px;
+    }
+
+    .o_group_name {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-dark);
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-light);
+        display: inline-block;
+        letter-spacing: -0.2px;
+    }
+
+    .o_group_name i {
+        color: var(--primary-blue);
+    }
+
+    .o_group_fields {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .o_row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+    }
+
+    .o_row .o_field_widget {
+        flex: 1;
+    }
+
+    .o_field_widget {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .o_form_label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--text-muted);
+    }
+
+    .o_required {
+        color: var(--required-red);
+    }
+
+    .o_input, .o_select, .o_input_currency input, .o_textarea {
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        padding: 0.65rem 0.9rem;
+        background-color: var(--card-white);
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        width: 100%;
+    }
+
+    .o_textarea {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .o_input:focus, .o_select:focus, .o_textarea:focus {
+        border-color: var(--primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+
+    /* Financial group 3-columns */
+    .o_group_financial .o_group_fields.o_group_3_cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .o_input_currency {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        background: var(--card-white);
+        padding-left: 0.5rem;
+    }
+
+    .o_input_currency .o_currency_symbol {
+        padding: 0 0.5rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .o_input_currency input {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+    }
+
+    /* Chatter / Notes Section */
+    .o_chatter_wrapper {
+        margin-top: 2rem;
+        background: var(--gray-bg);
+        border-radius: 18px;
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+    }
+
+    .o_chatter_top {
+        padding: 0.9rem 1.5rem;
+        background: var(--card-white);
+        border-bottom: 1px solid var(--border-light);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .o_chatter_badge {
+        background: #E2E8F0;
+        color: var(--text-muted);
+        margin-left: 0.7rem;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .o_chatter_content {
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+    }
+
+    .o_message_item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .o_message_fake_input {
+        background: var(--card-white);
+        margin-top: 0.5rem;
+        padding: 0.65rem 1rem;
+        border-radius: 40px;
+        color: #6C86A3;
+        font-size: 0.8rem;
+        display: flex;
+        gap: 0.6rem;
+        border: 1px dashed var(--border-light);
+        cursor: default;
+    }
+
+    /* Footer buttons */
+    .o_form_bottom_buttons {
+        margin-top: 2rem;
+        padding-top: 1.2rem;
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .o_button_panel {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .o_btn_cancel_footer, .o_btn_save_footer {
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .o_btn_cancel_footer {
+        background-color: var(--card-white);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
+    }
+
+    .o_btn_cancel_footer:hover {
+        background-color: #F1F5F9;
+    }
+
+    .o_btn_save_footer {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .o_btn_save_footer:hover {
+        background-color: #1E40AF;
+        transform: translateY(-1px);
+    }
+
+    /* Helper text */
+    .o_field_help {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .odoo-main-container {
+            padding: 0 0.75rem;
+        }
+        .o_form_sheet {
+            padding: 1.25rem;
+        }
+        .o_row_registration {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .o_group {
+            gap: 1.5rem;
+        }
+    }
+</style>
+
+<script>
+    (function() {
+        'use strict';
+        
+        // Auto-capitalize first letter of each word for driver name
+        const nameInput = document.getElementById('full_name');
+        if (nameInput) {
+            nameInput.addEventListener('input', function(e) {
+                let words = this.value.split(' ');
+                let capitalized = words.map(word => {
+                    if (word.length > 0) {
+                        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                    }
+                    return word;
+                }).join(' ');
+                if (this.value !== capitalized) {
+                    this.value = capitalized;
+                }
+            });
+        }
+
+        const form = document.getElementById('driverForm');
+        const topSaveBtn = document.getElementById('btnSaveTop');
+        const topDiscardBtn = document.getElementById('btnDiscardTop');
+        const footerSaveBtn = document.getElementById('submitBtnFooter');
+
+        function submitForm(buttonElement) {
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                form.reportValidity();
+                return false;
+            }
+            const allSaveButtons = [topSaveBtn, footerSaveBtn];
+            allSaveButtons.forEach(btn => {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+                }
+            });
+            if (topDiscardBtn) topDiscardBtn.disabled = true;
+            form.submit();
+            return true;
+        }
+
+        if (topSaveBtn) {
+            topSaveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                submitForm(this);
+            });
+        }
+        if (footerSaveBtn) {
+            footerSaveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                submitForm(this);
+            });
+        }
+
+        function cancelAndRedirect() {
+            window.location.href = "{{ url_for('driver.list_drivers') }}";
+        }
+        if (topDiscardBtn) {
+            topDiscardBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('Discard all changes? Unsaved data will be lost.')) {
+                    cancelAndRedirect();
+                }
+            });
+        }
+        const footerCancelLink = document.querySelector('.o_btn_cancel_footer');
+        if (footerCancelLink) {
+            footerCancelLink.addEventListener('click', function(e) {
+                if (!confirm('Cancel driver registration? All entered info will be lost.')) {
+                    e.preventDefault();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // Required field validation visual feedback
+        const requiredFields = form.querySelectorAll('[required]');
+        requiredFields.forEach(field => {
+            field.addEventListener('blur', function() {
+                if (!this.value.trim()) {
+                    this.style.borderColor = '#DC2626';
+                } else {
+                    this.style.borderColor = '';
+                }
+            });
+        });
+    })();
+</script>
+{% endblock %}

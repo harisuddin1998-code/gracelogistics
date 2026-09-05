@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-report-container">
+    <!-- Odoo Control Panel -->
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="#">Inventory</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('expense.inventory') }}">Spare Parts</a></li>
+                    <li class="breadcrumb-item active">Report</li>
+                </ol>
+            </div>
+        </div>
+        <div class="o_cp_right">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('expense.export_excel') }}" class="btn btn-outline-secondary o_cp_button">
+                    <i class="fas fa-file-excel"></i> Export
+                </a>
+                <button type="button" class="btn btn-outline-secondary o_cp_button" id="refreshReport">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-chart-line me-2"></i> Spare Parts Report
+            <span class="o_header_badge">Inventory & Expense Analytics</span>
+        </div>
+        <div class="o_card_body">
+            <!-- KPI Metrics Row -->
+            <div class="o_kpi_grid">
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-info">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.2f}".format(total_cost) }}</div>
+                    <div class="o_kpi_label">Total Expenses</div>
+                    <div class="o_kpi_sub">All part purchases</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-success">
+                        <i class="fas fa-cubes"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ stats.total_parts }}</div>
+                    <div class="o_kpi_label">Total Parts</div>
+                    <div class="o_kpi_sub">Distinct SKUs</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ stats.low_stock_count }}</div>
+                    <div class="o_kpi_label">Low Stock Items</div>
+                    <div class="o_kpi_sub">Below reorder level</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-danger">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ stats.out_of_stock_count }}</div>
+                    <div class="o_kpi_label">Out of Stock</div>
+                    <div class="o_kpi_sub">Zero quantity</div>
+                </div>
+            </div>
+
+            <!-- Most Used Parts Table -->
+            <div class="o_table_section mt-3">
+                <div class="o_section_title">
+                    <i class="fas fa-trophy"></i> Most Used Parts (Top Consumption)
+                </div>
+                <div class="table-responsive">
+                    <table class="o_data_table o_data_table_hover">
+                        <thead>
+                            <tr>
+                                <th>Part Name</th>
+                                <th>Part Number</th>
+                                <th>Times Used</th>
+                                <th>Total Quantity</th>
+                                <th>Total Cost (PKR)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for part in most_used %}
+                            <tr class="o_data_row">
+                                <td><strong>{{ part.part_name }}</strong></td>
+                                <td><span class="o_part_number">{{ part.part_number }}</span></td>
+                                <td><span class="o_badge_count">{{ part.usage_count }}x</span></td>
+                                <td>{{ part.total_quantity }} units</td>
+                                <td><strong>PKR {{ "{:,.2f}".format(part.total_cost) }}</strong></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No part usage data available. Parts used in maintenance will appear here.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Export Action -->
+            <div class="o_export_action">
+                <a href="{{ url_for('expense.export_excel') }}" class="o_btn_primary">
+                    <i class="fas fa-file-excel"></i> Export Full Report to Excel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-report-container {
+        max-width: 1200px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.5rem 1.8rem;
+    }
+    /* KPI Cards */
+    .o_kpi_grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    .o_kpi_card {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        border-radius: 20px;
+        padding: 1rem 0.8rem;
+        flex: 1 1 180px;
+        text-align: center;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .o_kpi_card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+    .o_kpi_icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-danger { background: #FEF2F2; color: #B91C1C; }
+    .o_kpi_value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--odoo-text);
+        line-height: 1.2;
+    }
+    .o_kpi_label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+        margin-top: 0.3rem;
+    }
+    .o_kpi_sub {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    /* Table Section */
+    .o_table_section {
+        margin-top: 1rem;
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .o_data_table thead th {
+        background: #F9FBFE;
+        padding: 0.8rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--odoo-text-light);
+        border-bottom: 1px solid var(--odoo-border);
+        text-align: left;
+    }
+    .o_data_row td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+    .o_data_table_hover .o_data_row:hover td {
+        background-color: #F8FAFE;
+    }
+    .o_part_number {
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: var(--odoo-text-light);
+    }
+    .o_badge_count {
+        background: #EFF6FF;
+        padding: 0.2rem 0.7rem;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--odoo-primary);
+        display: inline-block;
+    }
+    /* Export Action */
+    .o_export_action {
+        margin-top: 2rem;
+        text-align: right;
+        border-top: 1px solid var(--odoo-border);
+        padding-top: 1.5rem;
+    }
+    .o_btn_primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.8rem;
+        border-radius: 40px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .o_btn_primary:hover {
+        background: #1E40AF;
+        transform: translateY(-1px);
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-report-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_kpi_grid {
+            gap: 0.8rem;
+        }
+        .o_kpi_card {
+            min-width: 140px;
+        }
+        .o_export_action {
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    document.getElementById('refreshReport')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

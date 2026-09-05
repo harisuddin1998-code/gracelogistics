@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ APP_NAME }} - {{ APP_SLOGAN }}{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f3f3;
+            --text-primary: #000000;
+            --text-secondary: #616161;
+            --accent-color: #0078d4;
+            --accent-hover: #106ebe;
+            --border-color: #e0e0e0;
+            --card-bg: #ffffff;
+            --navbar-bg: #ffffff;
+            --footer-bg: #f3f3f3;
+        }
+        
+        body {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+        }
+        
+        .navbar-dark {
+            background-color: var(--navbar-bg) !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            background: var(--card-bg);
+        }
+        
+        .card-header {
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
+        }
+        
+        .table th {
+            background-color: #343a40;
+            color: white;
+        }
+        
+        .badge {
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        
+        /* Footer */
+        .footer-crafted {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            margin-top: 40px;
+        }
+        
+        .footer-crafted a {
+            color: #ffaa44;
+            text-decoration: none;
+        }
+        
+        .footer-crafted a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer-crafted .heart {
+            color: #ff4444;
+            display: inline-block;
+            animation: heartbeat 1.5s ease infinite;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        /* Theme Switcher */
+        .theme-switcher {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .theme-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 18px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .theme-btn:hover {
+            transform: scale(1.05);
+            background: var(--accent-hover);
+        }
+        
+        .theme-menu {
+            position: absolute;
+            bottom: 60px;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 180px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .theme-menu.show {
+            display: block;
+        }
+        
+        .theme-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .theme-option:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+        
+        @media print {
+            .navbar, .footer-crafted, .theme-switcher {
+                display: none !important;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                {% if logo_exists %}
+                <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Logo" style="height: 35px; margin-right: 10px;">
+                {% else %}
+                <i class="fas fa-truck-moving me-2"></i>
+                {% endif %}
+                {{ APP_NAME }}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-car"></i> Vehicles
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/vehicles/">List Vehicles</a></li>
+                            <li><a class="dropdown-item" href="/vehicles/add">Add Vehicle</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-users"></i> Drivers
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/drivers/">List Drivers</a></li>
+                            <li><a class="dropdown-item" href="/drivers/add">Add Driver</a></li>
+                            <li><a class="dropdown-item" href="/drivers/advance">Advance Salary</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-gas-pump"></i> Fuel
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/fuel/entry">Fuel Entry</a></li>
+                            <li><a class="dropdown-item" href="/fuel/report">Fuel Report</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-wrench"></i> Maintenance
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/maintenance/oil-change">Oil Change</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/filter-change">Filter Change</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/tuning">Tuning</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/electrical">Electrical</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/body-work">Body Work</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/tire-change">Tire Change</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/history">History</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/report">Report</a></li>
+                            <li><a class="dropdown-item" href="/maintenance/schedule">Schedule</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-microchip"></i> Spare Parts
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/expenses/spare-parts">Add Expense</a></li>
+                            <li><a class="dropdown-item" href="/expenses/inventory">Inventory</a></li>
+                            <li><a class="dropdown-item" href="/expenses/history">Expense History</a></li>
+                            <li><a class="dropdown-item" href="/expenses/report">Report</a></li>
+                            <li><a class="dropdown-item" href="/vendors/">Vendors</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-line"></i> Reports
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/reports/vehicle-stock">Vehicle Stock</a></li>
+                            <li><a class="dropdown-item" href="/reports/expense-summary">Expense Summary</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/salary/generate"><i class="fas fa-print"></i> Salary</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/permits/"><i class="fas fa-file-alt"></i> Permits</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/stock/update"><i class="fas fa-boxes"></i> Stock</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/settings/">Branding</a></li>
+                            <li><a class="dropdown-item" href="/settings/company-info">Company Info</a></li>
+                            <li><a class="dropdown-item" href="/settings/themes">Themes</a></li>
+                            <li><a class="dropdown-item" href="/settings/system-info">System Info</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> {{ user_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/change-password">Change Password</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-crafted">
+        <small>
+            &copy; {{ current_year }} {{ APP_NAME }}. All rights reserved. &nbsp;|&nbsp;
+            Crafted with <span class="heart">❤</span> by <a href="https://originsolutions.com" target="_blank">Origins Solutions</a>
+        </small>
+    </div>
+
+    <!-- Theme Switcher -->
+    <div class="theme-switcher">
+        <button class="theme-btn" onclick="toggleThemeMenu()">
+            <i class="fas fa-palette"></i> Theme
+        </button>
+        <div class="theme-menu" id="themeMenu">
+            <div class="theme-option" onclick="setTheme('windows11')">
+                <div class="color-preview" style="background: #0078d4;"></div>
+                Windows 11 Light
+            </div>
+            <div class="theme-option" onclick="setTheme('windows11-dark')">
+                <div class="color-preview" style="background: #1c1c1c;"></div>
+                Windows 11 Dark
+            </div>
+            <div class="theme-option" onclick="setTheme('corporate')">
+                <div class="color-preview" style="background: #2c3e50;"></div>
+                Corporate Blue
+            </div>
+            <div class="theme-option" onclick="setTheme('nature')">
+                <div class="color-preview" style="background: #2ecc71;"></div>
+                Nature Green
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        // Theme Management
+        const themes = {
+            'windows11': {
+                name: 'Windows 11 Light',
+                colors: {
+                    '--bg-primary': '#ffffff',
+                    '--bg-secondary': '#f3f3f3',
+                    '--text-primary': '#000000',
+                    '--text-secondary': '#616161',
+                    '--accent-color': '#0078d4',
+                    '--accent-hover': '#106ebe',
+                    '--border-color': '#e0e0e0',
+                    '--card-bg': '#ffffff',
+                    '--navbar-bg': '#ffffff',
+                    '--footer-bg': '#f3f3f3'
+                }
+            },
+            'windows11-dark': {
+                name: 'Windows 11 Dark',
+                colors: {
+                    '--bg-primary': '#1c1c1c',
+                    '--bg-secondary': '#2d2d2d',
+                    '--text-primary': '#ffffff',
+                    '--text-secondary': '#a0a0a0',
+                    '--accent-color': '#0078d4',
+                    '--accent-hover': '#106ebe',
+                    '--border-color': '#404040',
+                    '--card-bg': '#2d2d2d',
+                    '--navbar-bg': '#1c1c1c',
+                    '--footer-bg': '#1c1c1c'
+                }
+            },
+            'corporate': {
+                name: 'Corporate Blue',
+                colors: {
+                    '--bg-primary': '#ffffff',
+                    '--bg-secondary': '#ecf0f1',
+                    '--text-primary': '#2c3e50',
+                    '--text-secondary': '#7f8c8d',
+                    '--accent-color': '#2980b9',
+                    '--accent-hover': '#1c638c',
+                    '--border-color': '#bdc3c7',
+                    '--card-bg': '#ffffff',
+                    '--navbar-bg': '#2c3e50',
+                    '--footer-bg': '#2c3e50'
+                }
+            },
+            'nature': {
+                name: 'Nature Green',
+                colors: {
+                    '--bg-primary': '#ffffff',
+                    '--bg-secondary': '#e8f5e9',
+                    '--text-primary': '#1b5e20',
+                    '--text-secondary': '#4caf50',
+                    '--accent-color': '#2ecc71',
+                    '--accent-hover': '#27ae60',
+                    '--border-color': '#c8e6c9',
+                    '--card-bg': '#ffffff',
+                    '--navbar-bg': '#1b5e20',
+                    '--footer-bg': '#1b5e20'
+                }
+            }
+        };
+
+        function applyTheme(themeId) {
+            const theme = themes[themeId];
+            if (!theme) return;
+            
+            const root = document.documentElement;
+            for (const [key, value] of Object.entries(theme.colors)) {
+                root.style.setProperty(key, value);
+            }
+            
+            localStorage.setItem('selectedTheme', themeId);
+            
+            // Save to server
+            fetch('/settings/save-theme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme_id: themeId })
+            }).catch(err => console.error('Error saving theme:', err));
+        }
+
+        function setTheme(themeId) {
+            applyTheme(themeId);
+            document.getElementById('themeMenu').classList.remove('show');
+        }
+
+        function toggleThemeMenu() {
+            const menu = document.getElementById('themeMenu');
+            menu.classList.toggle('show');
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('selectedTheme');
+            if (savedTheme && themes[savedTheme]) {
+                applyTheme(savedTheme);
+            }
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const themeSwitcher = document.querySelector('.theme-switcher');
+                if (themeSwitcher && !themeSwitcher.contains(event.target)) {
+                    document.getElementById('themeMenu').classList.remove('show');
+                }
+            });
+            
+            // Initialize DataTables
+            if ($.fn.DataTable) {
+                $('.datatable').DataTable({
+                    pageLength: 10,
+                    responsive: true
+                });
+            }
+        });
+        
+        function confirmDelete(itemId, itemName, type) {
+            if(confirm(`Are you sure you want to delete this ${type}?`)) {
+                window.location.href = `/${type}/delete/${itemId}`;
+            }
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

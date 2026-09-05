@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-permit-container">
+    <!-- Odoo Control Panel Sub-Header -->
+    <div class="o_control_panel rounded-3 mb-3">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item active">Road Permits & Compliance</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-purple);">Permits & Fitness Compliance</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('permit.add_permit') }}" class="btn btn-odoo-primary">
+                <i class="fa-solid fa-plus me-1"></i> New Permit
+            </a>
+            <button type="button" class="btn btn-odoo-secondary" id="refreshPermits">
+                <i class="fa-solid fa-rotate me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="o_card">
+        <div class="o_card_header">
+            <i class="fas fa-file-alt me-2"></i> Road Permits Management
+            <span class="o_header_badge">Compliance tracking</span>
+        </div>
+        <div class="o_card_body">
+            <!-- KPI Metrics Row -->
+            <div class="o_kpi_grid">
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-info">
+                        <i class="fas fa-file-contract"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ permits|length }}</div>
+                    <div class="o_kpi_label">Total Permits</div>
+                    <div class="o_kpi_sub">All records</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ permits|selectattr('days_until_expiry', '>=', 30)|list|length }}</div>
+                    <div class="o_kpi_label">Valid</div>
+                    <div class="o_kpi_sub">30+ days left</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ permits|selectattr('days_until_expiry', '>=', 0)|selectattr('days_until_expiry', '<', 30)|list|length }}</div>
+                    <div class="o_kpi_label">Expiring Soon</div>
+                    <div class="o_kpi_sub">Within 30 days</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-danger">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="o_kpi_value">{{ permits|selectattr('days_until_expiry', '<', 0)|list|length }}</div>
+                    <div class="o_kpi_label">Expired</div>
+                    <div class="o_kpi_sub">Overdue</div>
+                </div>
+            </div>
+
+            <!-- Expiring Soon Alert (Odoo Info Box) -->
+            {% if expiring_soon %}
+            <div class="o_info_alert o_alert_warning">
+                <div class="o_info_icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="o_info_text">
+                    <strong>{{ expiring_soon|length }} permit(s) expiring within 15 days!</strong> 
+                    Please renew immediately to avoid penalties.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Filter Bar -->
+            <div class="o_filter_bar">
+                <div class="o_filter_row">
+                    <div class="o_filter_group">
+                        <label class="o_filter_label"><i class="fas fa-search"></i> Search</label>
+                        <div class="o_input_wrapper">
+                            <i class="fas fa-search o_field_icon"></i>
+                            <input type="text" id="searchInput" class="o_input" placeholder="Vehicle, reg no, authority...">
+                        </div>
+                    </div>
+                    <div class="o_filter_group">
+                        <label class="o_filter_label"><i class="fas fa-filter"></i> Status</label>
+                        <select id="statusFilter" class="o_select">
+                            <option value="all">All Permits</option>
+                            <option value="valid">Valid (30+ days)</option>
+                            <option value="expiring">Expiring Soon (<30 days)</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                    <div class="o_filter_actions">
+                        <button type="button" id="resetFilters" class="o_btn_secondary_small"><i class="fas fa-times"></i> Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permits Table -->
+            <div class="o_table_section">
+                <div class="o_section_title">
+                    <i class="fas fa-list-ul"></i> Permit Records
+                </div>
+                <div class="table-responsive">
+                    <table class="o_data_table o_data_table_hover" id="permitsTable">
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Days Left</th>
+                                <th>Issue Date</th>
+                                <th>Expiry Date</th>
+                                <th class="text-end">Cost (PKR)</th>
+                                <th>Authority</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for permit in permits %}
+                            <tr class="o_data_row"
+                                data-status="
+                                    {%- if permit.days_until_expiry < 0 %}expired
+                                    {%- elif permit.days_until_expiry < 30 %}expiring
+                                    {%- else %}valid{% endif -%}"
+                                data-search="{{ permit.registration_no }} {{ permit.make }} {{ permit.model }} {{ permit.authority_name or '' }}">
+                                <td class="text-nowrap">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="o_status_badge o_status_blue fw-bold">{{ permit.registration_no }}</span>
+                                        <small class="text-muted">{{ permit.make }} {{ permit.model }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-center text-nowrap">
+                                    {% if permit.days_until_expiry < 0 %}
+                                        <span class="o_status_badge o_status_danger"><i class="fa-solid fa-circle-xmark me-1"></i>Expired</span>
+                                    {% elif permit.days_until_expiry < 30 %}
+                                        <span class="o_status_badge o_status_warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Expiring Soon</span>
+                                    {% else %}
+                                        <span class="o_status_badge o_status_success"><i class="fa-solid fa-circle-check me-1"></i>Valid</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center text-nowrap">
+                                    {% if permit.days_until_expiry < 0 %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Expired</span>
+                                    {% elif permit.days_until_expiry < 15 %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ permit.days_until_expiry }} days</span>
+                                    {% elif permit.days_until_expiry < 30 %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">{{ permit.days_until_expiry }} days</span>
+                                    {% else %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">{{ permit.days_until_expiry }} days</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap">{{ permit.issue_date }}</td>
+                                <td class="text-nowrap">{{ permit.expiry_date }}</td>
+                                <td class="text-end text-nowrap fw-semibold">PKR {{ "{:,.0f}".format(permit.cost or 0) }}</td>
+                                <td class="text-nowrap">{{ permit.authority_name or '—' }}</td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        {% if permit.days_until_expiry < 30 %}
+                                        <a href="{{ url_for('permit.renew_permit', permit_id=permit.permit_id) }}" class="o_icon_btn text-primary" title="Renew Permit">
+                                            <i class="fa-solid fa-arrows-rotate"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('permit.edit_permit', permit_id=permit.permit_id) }}" class="o_icon_btn" title="Edit Permit">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <a href="{{ url_for('permit.delete_permit', permit_id=permit.permit_id) }}" class="o_icon_btn o_icon_rose" title="Delete Permit" onclick="return confirm('Delete this permit record?');">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                             </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">No permits found. Click "New Permit" to add one.</td>
+                             </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odoo ERP Styles (Corporate Blue) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+    }
+    body {
+        background-color: var(--odoo-bg);
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .odoo-permit-container {
+        max-width: 1400px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+    }
+    /* Control Panel */
+    .o_control_panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .o_cp_breadcrumbs .breadcrumb {
+        background: transparent;
+        margin: 0;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-item a {
+        color: var(--odoo-primary);
+        text-decoration: none;
+    }
+    .breadcrumb-item.active {
+        color: var(--odoo-text-light);
+        font-weight: 500;
+    }
+    .o_cp_button {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+        border: 1px solid var(--odoo-border);
+        background: white;
+        color: var(--odoo-text);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+    .o_cp_button.btn-primary {
+        background: var(--odoo-primary);
+        color: white;
+        border: none;
+    }
+    .o_cp_button.btn-primary:hover {
+        background: #1E40AF;
+    }
+    .o_cp_button.btn-outline-secondary:hover {
+        background: var(--odoo-primary);
+        color: white;
+        border-color: var(--odoo-primary);
+    }
+    /* Main Card */
+    .o_card {
+        background: var(--odoo-card-bg);
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid var(--odoo-border);
+        overflow: hidden;
+    }
+    .o_card_header {
+        padding: 1rem 1.8rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--odoo-text);
+        border-bottom: 1px solid var(--odoo-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: white;
+    }
+    .o_header_badge {
+        background: #F1F5F9;
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.25rem 0.8rem;
+        border-radius: 30px;
+        color: #475569;
+    }
+    .o_card_body {
+        padding: 1.5rem 1.8rem;
+    }
+    /* KPI Cards */
+    .o_kpi_grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+        margin-bottom: 1.8rem;
+    }
+    .o_kpi_card {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        border-radius: 20px;
+        padding: 1rem 0.8rem;
+        flex: 1 1 180px;
+        text-align: center;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .o_kpi_card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+    .o_kpi_icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        font-size: 1.3rem;
+    }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-danger { background: #FEF2F2; color: #B91C1C; }
+    .o_kpi_value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--odoo-text);
+        line-height: 1.2;
+    }
+    .o_kpi_label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: var(--odoo-text-light);
+        margin-top: 0.3rem;
+    }
+    .o_kpi_sub {
+        font-size: 0.7rem;
+        color: var(--odoo-text-light);
+        margin-top: 0.2rem;
+    }
+    /* Info Alert */
+    .o_info_alert {
+        background: #FEF3C7;
+        border-left: 4px solid #F59E0B;
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 0.8rem;
+        align-items: flex-start;
+    }
+    .o_alert_warning .o_info_icon {
+        color: #C17B0E;
+    }
+    .o_info_text {
+        font-size: 0.85rem;
+        color: #78350F;
+    }
+    /* Filter Bar */
+    .o_filter_bar {
+        background: #F9FBFE;
+        border-radius: 18px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 1.8rem;
+        border: 1px solid var(--odoo-border);
+    }
+    .o_filter_row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+    .o_filter_group {
+        flex: 1;
+        min-width: 180px;
+    }
+    .o_filter_label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--odoo-text-light);
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+    .o_input_wrapper {
+        position: relative;
+    }
+    .o_field_icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--odoo-primary-light);
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .o_input, .o_select {
+        width: 100%;
+        padding: 0.55rem 0.9rem 0.55rem 2rem;
+        border: 1px solid var(--odoo-border);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    .o_select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6E8A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+    }
+    .o_input:focus, .o_select:focus {
+        border-color: var(--odoo-primary-light);
+        box-shadow: var(--focus-shadow);
+        outline: none;
+    }
+    .o_filter_actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.2rem;
+    }
+    .o_btn_secondary_small {
+        background: white;
+        border: 1px solid var(--odoo-border);
+        color: var(--odoo-text);
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .o_btn_secondary_small:hover {
+        background: #F1F5F9;
+    }
+    /* Table */
+    .o_table_section {
+        margin-top: 0.5rem;
+    }
+    .o_section_title {
+        font-weight: 600;
+        color: var(--odoo-primary);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 3px solid var(--odoo-primary);
+        padding-left: 0.7rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .o_data_table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .o_data_table thead th {
+        background: #F9FBFE;
+        padding: 0.8rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--odoo-text-light);
+        border-bottom: 1px solid var(--odoo-border);
+        text-align: left;
+    }
+    .o_data_row td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--odoo-border);
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+    .o_data_table_hover .o_data_row:hover td {
+        background-color: #F8FAFE;
+    }
+    .o_vehicle_cell {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+    /* Days badges */
+    .o_days_badge {
+        display: inline-block;
+        padding: 0.25rem 0.7rem;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .o_days_ok { background: #E6F7EC; color: #0A6E43; }
+    .o_days_warning { background: #FEF3C7; color: #B45309; }
+    .o_days_critical { background: #FEE2E2; color: #991B1B; }
+    .o_days_expired { background: #FEE2E2; color: #B91C1C; }
+    /* Status badges */
+    .o_status_badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.8rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    .o_status_valid { background: #E6F7EC; color: #0A6E43; }
+    .o_status_expiring { background: #FEF3C7; color: #B45309; }
+    .o_status_expired { background: #FEE2E2; color: #B91C1C; }
+    /* Action buttons */
+    .o_actions_cell {
+        white-space: nowrap;
+    }
+    .o_action_btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .o_action_renew {
+        background: #FEF3C7;
+        color: #B45309;
+        border: 1px solid #FDE68A;
+    }
+    .o_action_renew:hover {
+        background: #B45309;
+        color: white;
+    }
+    .o_action_disabled {
+        color: var(--odoo-text-light);
+        font-size: 0.7rem;
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .odoo-permit-container {
+            padding: 0.5rem;
+        }
+        .o_card_body {
+            padding: 1rem;
+        }
+        .o_kpi_grid {
+            gap: 0.8rem;
+        }
+        .o_kpi_card {
+            min-width: 140px;
+        }
+        .o_filter_row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .o_filter_actions {
+            justify-content: flex-start;
+        }
+        .o_data_table thead th, .o_data_row td {
+            padding: 0.6rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .o_actions_cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+    }
+</style>
+
+<script>
+    (function() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const resetBtn = document.getElementById('resetFilters');
+        const tableRows = document.querySelectorAll('#permitsTable tbody tr.o_data_row');
+        
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            
+            tableRows.forEach(row => {
+                const searchText = row.getAttribute('data-search')?.toLowerCase() || '';
+                const rowStatus = row.getAttribute('data-status') || '';
+                let matchesSearch = searchTerm === '' || searchText.includes(searchTerm);
+                let matchesStatus = status === 'all' || rowStatus === status;
+                
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        searchInput.addEventListener('input', filterTable);
+        statusFilter.addEventListener('change', filterTable);
+        
+        resetBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            statusFilter.value = 'all';
+            filterTable();
+        });
+        
+        document.getElementById('refreshPermits')?.addEventListener('click', function() {
+            window.location.reload();
+        });
+    })();
+</script>
+{% endblock %}
