@@ -33,11 +33,37 @@ def _driver_form_data():
     }
 
 
+# Filters behind the clickable boxes on the driver list: ?filter=<key>
+DRIVER_FILTERS = {
+    'active': ('Active drivers', lambda d: d['status'] == 'Active'),
+    'inactive': ('Inactive drivers', lambda d: d['status'] == 'Inactive'),
+    'assigned': ('Drivers assigned to a vehicle', lambda d: bool(d['vehicle_count'])),
+    'advance': ('Drivers with an advance balance', lambda d: (d['advance_balance'] or 0) > 0),
+}
+
+
 @driver_bp.route('/')
 @login_required
 def list_drivers():
-    drivers = DriverModel.get_all_drivers()
-    return render_template('drivers/list.html', drivers=drivers)
+    all_drivers = DriverModel.get_all_drivers()
+
+    active_filter = request.args.get('filter', '')
+    drivers, filter_label = all_drivers, None
+    if active_filter in DRIVER_FILTERS:
+        filter_label, keep = DRIVER_FILTERS[active_filter]
+        drivers = [d for d in all_drivers if keep(d)]
+    else:
+        active_filter = ''
+
+    # box counts always describe the whole fleet, not the filtered rows
+    stats = {
+        'total': len(all_drivers),
+        'active': sum(1 for d in all_drivers if d['status'] == 'Active'),
+        'assigned': sum(1 for d in all_drivers if d['vehicle_count']),
+        'advance': sum((d['advance_balance'] or 0) for d in all_drivers),
+    }
+    return render_template('drivers/list.html', drivers=drivers, stats=stats,
+                           active_filter=active_filter, filter_label=filter_label)
 
 
 @driver_bp.route('/add', methods=['GET', 'POST'])

@@ -27,35 +27,42 @@
     <div class="o_content">
         <!-- KPI Statistics (Odoo Dashboard style) -->
         <div class="o_dashboard_metrics">
-            <div class="o_metric_card">
+            <a href="{{ url_for('vehicle.list_vehicles') }}" class="o_metric_card" title="Show all vehicles">
                 <div class="o_metric_icon bg-soft-primary">
                     <i class="fas fa-truck-moving"></i>
                 </div>
-                <div class="o_metric_value">{{ vehicles|length }}</div>
+                <div class="o_metric_value">{{ stats.total }}</div>
                 <div class="o_metric_label">Total Vehicles</div>
-            </div>
-            <div class="o_metric_card">
+            </a>
+            <a href="{{ url_for('vehicle.list_vehicles', filter='active') }}" class="o_metric_card {% if active_filter == 'active' %}is-active{% endif %}" title="Show operational vehicles">
                 <div class="o_metric_icon bg-soft-success">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="o_metric_value">{{ vehicles|selectattr('status', 'equalto', 'Active')|list|length }}</div>
+                <div class="o_metric_value">{{ stats.active }}</div>
                 <div class="o_metric_label">Operational</div>
-            </div>
-            <div class="o_metric_card">
+            </a>
+            <a href="{{ url_for('vehicle.list_vehicles', filter='repair') }}" class="o_metric_card {% if active_filter == 'repair' %}is-active{% endif %}" title="Show vehicles under maintenance">
                 <div class="o_metric_icon bg-soft-warning">
                     <i class="fas fa-tools"></i>
                 </div>
-                <div class="o_metric_value">{{ vehicles|selectattr('status', 'equalto', 'Under Repair')|list|length }}</div>
+                <div class="o_metric_value">{{ stats.repair }}</div>
                 <div class="o_metric_label">Maintenance</div>
-            </div>
-            <div class="o_metric_card">
+            </a>
+            <a href="{{ url_for('vehicle.list_vehicles', filter='unassigned') }}" class="o_metric_card {% if active_filter == 'unassigned' %}is-active{% endif %}" title="Show vehicles without a driver">
                 <div class="o_metric_icon bg-soft-info">
                     <i class="fas fa-user-friends"></i>
                 </div>
-                <div class="o_metric_value">{{ vehicles|rejectattr('assigned_driver_id')|list|length }}</div>
+                <div class="o_metric_value">{{ stats.unassigned }}</div>
                 <div class="o_metric_label">Unassigned</div>
-            </div>
+            </a>
         </div>
+
+        {% if active_filter %}
+        <div class="o_filter_note">
+            <i class="fas fa-filter"></i> Showing: <strong>{{ filter_label }}</strong> ({{ vehicles|length }})
+            <a href="{{ url_for('vehicle.list_vehicles') }}"><i class="fas fa-times me-1"></i>Show all vehicles</a>
+        </div>
+        {% endif %}
 
         <!-- Vehicle List View (Odoo List/Table View) -->
         <div class="o_list_view card">
@@ -65,10 +72,10 @@
                 </div>
                 <div class="o_list_header_filters">
                     <div class="btn-group btn-group-sm" id="statusFilterGroup">
-                        <button class="btn o_filter_btn active" data-status="all">All</button>
-                        <button class="btn o_filter_btn" data-status="Active">Active</button>
-                        <button class="btn o_filter_btn" data-status="Under Repair">Maintenance</button>
-                        <button class="btn o_filter_btn" data-status="Retired">Retired</button>
+                        <a href="{{ url_for('vehicle.list_vehicles') }}" class="btn o_filter_btn {% if not active_filter %}active{% endif %}">All</a>
+                        <a href="{{ url_for('vehicle.list_vehicles', filter='active') }}" class="btn o_filter_btn {% if active_filter == 'active' %}active{% endif %}">Active</a>
+                        <a href="{{ url_for('vehicle.list_vehicles', filter='repair') }}" class="btn o_filter_btn {% if active_filter == 'repair' %}active{% endif %}">Maintenance</a>
+                        <a href="{{ url_for('vehicle.list_vehicles', filter='retired') }}" class="btn o_filter_btn {% if active_filter == 'retired' %}active{% endif %}">Retired</a>
                     </div>
                 </div>
             </div>
@@ -777,20 +784,6 @@
         $('[data-bs-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             placement: 'top'
-        });
-
-        // Status filter integration with DataTable
-        $('.o_filter_btn').on('click', function() {
-            const status = $(this).data('status');
-            $('.o_filter_btn').removeClass('active');
-            $(this).addClass('active');
-
-            if (status === 'all') {
-                table.column(4).search('').draw();
-            } else {
-                // Column index 4 = Status column - using regex for exact match with any status text
-                table.column(4).search('\\b' + status + '\\b', true, false).draw();
-            }
         });
 
         // Delete modal (delegated for DataTables)

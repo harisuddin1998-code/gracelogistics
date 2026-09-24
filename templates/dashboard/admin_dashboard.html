@@ -25,38 +25,38 @@
 
     <!-- KPI Metrics Row (Soft Pastel Purples, Blues & Pinks) -->
     <div class="o_dashboard_metrics">
-        <div class="o_metric_card">
+        <a href="{{ url_for('vehicle.list_vehicles') }}" class="o_metric_card" title="Open the vehicle list">
             <div class="o_metric_icon bg-soft-purple">
                 <i class="fas fa-truck-moving"></i>
             </div>
             <div class="o_metric_value">{{ vehicle_stats.total_vehicles }}</div>
             <div class="o_metric_label">Total Vehicles</div>
             <div class="o_metric_sub">Active: <span class="badge o_status_purple">{{ vehicle_stats.active_vehicles }}</span></div>
-        </div>
-        <div class="o_metric_card">
+        </a>
+        <a href="{{ url_for('driver.list_drivers', filter='active') }}" class="o_metric_card" title="Show active drivers">
             <div class="o_metric_icon bg-soft-blue">
                 <i class="fas fa-user-check"></i>
             </div>
             <div class="o_metric_value">{{ driver_stats.active_drivers }}</div>
             <div class="o_metric_label">Active Drivers</div>
             <div class="o_metric_sub">Advances: <strong class="text-primary">PKR {{ "{:,.0f}".format(driver_stats.total_advances) }}</strong></div>
-        </div>
-        <div class="o_metric_card">
+        </a>
+        <a href="{{ url_for('vehicle.list_vehicles', filter='repair') }}" class="o_metric_card" title="Show vehicles under repair">
             <div class="o_metric_icon bg-soft-pink">
                 <i class="fas fa-wrench"></i>
             </div>
             <div class="o_metric_value">{{ vehicle_stats.under_repair }}</div>
             <div class="o_metric_label">Under Repair</div>
             <div class="o_metric_sub"><span class="badge o_status_pink">In Workshop</span></div>
-        </div>
-        <div class="o_metric_card">
+        </a>
+        <a href="{{ url_for('fuel.fuel_report') }}" class="o_metric_card" title="Open the fuel report">
             <div class="o_metric_icon bg-soft-info">
                 <i class="fas fa-gas-pump"></i>
             </div>
             <div class="o_metric_value">PKR {{ "{:,.0f}".format(vehicle_stats.monthly_fuel_cost) }}</div>
             <div class="o_metric_label">Monthly Fuel Cost</div>
             <div class="o_metric_sub">Last 30 days</div>
-        </div>
+        </a>
     </div>
 
     <!-- Recent Fuel Entries (Odoo Data Table) -->

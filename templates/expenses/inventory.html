@@ -33,30 +33,30 @@
         <div class="o_card_body">
             <!-- KPI Metrics (Odoo Cards) -->
             <div class="o_kpi_grid">
-                <div class="o_kpi_card">
+                <a href="{{ url_for('expense.inventory') }}" class="o_kpi_card" title="Show all parts">
                     <div class="o_kpi_icon bg-soft-info">
                         <i class="fas fa-cube"></i>
                     </div>
                     <div class="o_kpi_value">{{ stats.total_parts }}</div>
                     <div class="o_kpi_label">Total Parts</div>
                     <div class="o_kpi_sub">Unique SKUs</div>
-                </div>
-                <div class="o_kpi_card">
+                </a>
+                <a href="{{ url_for('expense.inventory', filter='low') }}" class="o_kpi_card {% if active_filter == 'low' %}is-active{% endif %}" title="Show low stock parts">
                     <div class="o_kpi_icon bg-soft-warning">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="o_kpi_value">{{ stats.low_stock_count }}</div>
                     <div class="o_kpi_label">Low Stock</div>
                     <div class="o_kpi_sub">Below reorder level</div>
-                </div>
-                <div class="o_kpi_card">
+                </a>
+                <a href="{{ url_for('expense.inventory', filter='out') }}" class="o_kpi_card {% if active_filter == 'out' %}is-active{% endif %}" title="Show parts that are out of stock">
                     <div class="o_kpi_icon bg-soft-danger">
                         <i class="fas fa-ban"></i>
                     </div>
                     <div class="o_kpi_value">{{ stats.out_of_stock_count }}</div>
                     <div class="o_kpi_label">Out of Stock</div>
                     <div class="o_kpi_sub">Zero quantity</div>
-                </div>
+                </a>
                 <div class="o_kpi_card">
                     <div class="o_kpi_icon bg-soft-success">
                         <i class="fas fa-chart-line"></i>
@@ -66,6 +66,13 @@
                     <div class="o_kpi_sub">Inventory worth</div>
                 </div>
             </div>
+
+            {% if active_filter %}
+            <div class="o_filter_note">
+                <i class="fas fa-filter"></i> Showing: <strong>{{ filter_label }}</strong> ({{ inventory|length }})
+                <a href="{{ url_for('expense.inventory') }}"><i class="fas fa-times me-1"></i>Show all parts</a>
+            </div>
+            {% endif %}
 
             <!-- Inventory Table -->
             <div class="o_table_section">

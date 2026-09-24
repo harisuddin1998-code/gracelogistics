@@ -30,40 +30,47 @@
     <div class="o_content">
         <!-- KPI Statistics Dashboard -->
         <div class="o_dashboard_metrics">
-            <div class="o_metric_card">
+            <a href="{{ url_for('driver.list_drivers') }}" class="o_metric_card" title="Show all drivers">
                 <div class="o_metric_icon bg-soft-primary">
                     <i class="fas fa-users"></i>
                 </div>
-                <div class="o_metric_value">{{ drivers|length }}</div>
+                <div class="o_metric_value">{{ stats.total }}</div>
                 <div class="o_metric_label">Total Drivers</div>
-            </div>
-            <div class="o_metric_card">
+            </a>
+            <a href="{{ url_for('driver.list_drivers', filter='active') }}" class="o_metric_card {% if active_filter == 'active' %}is-active{% endif %}" title="Show active drivers">
                 <div class="o_metric_icon bg-soft-success">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="o_metric_value">{{ drivers|selectattr('status', 'equalto', 'Active')|list|length }}</div>
+                <div class="o_metric_value">{{ stats.active }}</div>
                 <div class="o_metric_label">Active Drivers</div>
                 <div class="o_metric_progress mt-2">
                     <div class="progress" style="height: 4px;">
-                        <div class="progress-bar bg-success" style="width: {{ (drivers|selectattr('status', 'equalto', 'Active')|list|length / drivers|length * 100) if drivers|length > 0 else 0 }}%"></div>
+                        <div class="progress-bar bg-success" style="width: {{ (stats.active / stats.total * 100) if stats.total > 0 else 0 }}%"></div>
                     </div>
                 </div>
-            </div>
-            <div class="o_metric_card">
+            </a>
+            <a href="{{ url_for('driver.list_drivers', filter='assigned') }}" class="o_metric_card {% if active_filter == 'assigned' %}is-active{% endif %}" title="Show drivers assigned to a vehicle">
                 <div class="o_metric_icon bg-soft-warning">
                     <i class="fas fa-truck"></i>
                 </div>
-                <div class="o_metric_value">{{ drivers|selectattr('assigned_vehicle', 'ne', 'Not Assigned')|selectattr('assigned_vehicle', 'defined')|list|length }}</div>
+                <div class="o_metric_value">{{ stats.assigned }}</div>
                 <div class="o_metric_label">Assigned to Vehicles</div>
-            </div>
-            <div class="o_metric_card">
+            </a>
+            <a href="{{ url_for('driver.advance_salary') }}" class="o_metric_card" title="Open advance salary records">
                 <div class="o_metric_icon bg-soft-info">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <div class="o_metric_value">PKR {{ drivers|sum(attribute='advance_balance')|default(0)|round(0)|int }}</div>
+                <div class="o_metric_value">PKR {{ "{:,.0f}".format(stats.advance) }}</div>
                 <div class="o_metric_label">Total Advance</div>
-            </div>
+            </a>
         </div>
+
+        {% if active_filter %}
+        <div class="o_filter_note">
+            <i class="fas fa-filter"></i> Showing: <strong>{{ filter_label }}</strong> ({{ drivers|length }})
+            <a href="{{ url_for('driver.list_drivers') }}"><i class="fas fa-times me-1"></i>Show all drivers</a>
+        </div>
+        {% endif %}
 
         <!-- Driver List View -->
         <div class="o_list_view card">
@@ -74,19 +81,22 @@
                 </div>
                 <div class="o_list_header_actions d-flex gap-2">
                     <div class="btn-group btn-group-sm" id="statusFilterGroup">
-                        <button class="btn o_filter_btn active" data-status="all">
+                        <a href="{{ url_for('driver.list_drivers') }}" class="btn o_filter_btn {% if not active_filter %}active{% endif %}">
                             <i class="fas fa-list me-1"></i>All
-                        </button>
-                        <button class="btn o_filter_btn" data-status="Active">
+                        </a>
+                        <a href="{{ url_for('driver.list_drivers', filter='active') }}" class="btn o_filter_btn {% if active_filter == 'active' %}active{% endif %}">
                             <i class="fas fa-play-circle me-1"></i>Active
-                        </button>
-                        <button class="btn o_filter_btn" data-status="Inactive">
+                        </a>
+                        <a href="{{ url_for('driver.list_drivers', filter='inactive') }}" class="btn o_filter_btn {% if active_filter == 'inactive' %}active{% endif %}">
                             <i class="fas fa-pause-circle me-1"></i>Inactive
-                        </button>
+                        </a>
+                        <a href="{{ url_for('driver.list_drivers', filter='assigned') }}" class="btn o_filter_btn {% if active_filter == 'assigned' %}active{% endif %}">
+                            <i class="fas fa-truck me-1"></i>Assigned
+                        </a>
                     </div>
-                    <button class="btn o_filter_btn" id="showWithAdvance">
+                    <a href="{{ url_for('driver.list_drivers', filter='advance') }}" class="btn o_filter_btn {% if active_filter == 'advance' %}active{% endif %}" id="showWithAdvance">
                         <i class="fas fa-money-bill-wave me-1"></i>Has Advance
-                    </button>
+                    </a>
                 </div>
             </div>
             
@@ -655,32 +665,6 @@
         
         // Initialize tooltips
         $('[data-bs-toggle="tooltip"]').tooltip();
-        
-        // Status filter
-        $('.o_filter_btn[data-status]').on('click', function() {
-            const status = $(this).data('status');
-            $('.o_filter_btn[data-status]').removeClass('active');
-            $(this).addClass('active');
-            $('#showWithAdvance').removeClass('active');
-            
-            if (status === 'all') {
-                table.column(8).search('').draw();
-            } else {
-                table.column(8).search(status, false, false).draw();
-            }
-        });
-        
-        // Show drivers with advance balance
-        $('#showWithAdvance').on('click', function() {
-            $('.o_filter_btn[data-status]').removeClass('active');
-            $(this).toggleClass('active');
-            
-            if ($(this).hasClass('active')) {
-                table.column(6).search('\\d+', true, false).draw();
-            } else {
-                table.column(6).search('').draw();
-            }
-        });
         
         // Delete modal (delegated for DataTables)
         $(document).on('click', '.o_btn_delete', function(e) {
