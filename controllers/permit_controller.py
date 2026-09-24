@@ -30,13 +30,32 @@ def _permit_form_data():
     }
 
 
+# Filters behind the clickable boxes on the permit list: ?filter=<key>
+# (days_until_expiry is None when a permit was saved without an expiry date)
+PERMIT_FILTERS = {
+    'valid': ('Valid permits (30+ days left)', lambda p: p['days_until_expiry'] is not None and p['days_until_expiry'] >= 30),
+    'expiring': ('Permits expiring within 30 days', lambda p: p['days_until_expiry'] is not None and 0 <= p['days_until_expiry'] < 30),
+    'expired': ('Expired permits', lambda p: p['days_until_expiry'] is not None and p['days_until_expiry'] < 0),
+}
+
+
 @permit_bp.route('/')
 @login_required
 def list_permits():
-    permits = PermitModel.get_all_permits()
+    all_permits = PermitModel.get_all_permits()
     expiring_soon = PermitModel.get_expiring_permits(15)
-    
-    return render_template('permits/list.html', permits=permits, expiring_soon=expiring_soon)
+
+    active_filter = request.args.get('filter', '')
+    permits, filter_label = all_permits, None
+    if active_filter in PERMIT_FILTERS:
+        filter_label, keep = PERMIT_FILTERS[active_filter]
+        permits = [p for p in all_permits if keep(p)]
+    else:
+        active_filter = ''
+
+    return render_template('permits/list.html', permits=permits, all_permits=all_permits,
+                           expiring_soon=expiring_soon, active_filter=active_filter,
+                           filter_label=filter_label)
 
 @permit_bp.route('/add', methods=['GET', 'POST'])
 @login_required

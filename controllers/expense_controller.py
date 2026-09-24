@@ -94,12 +94,30 @@ def delete_expense(expense_id):
 # INVENTORY MANAGEMENT ROUTES
 # ============================================
 
+# Filters behind the clickable boxes on the inventory: ?filter=<key>
+# (same rules as the counts in ExpenseModel.get_inventory_stats)
+INVENTORY_FILTERS = {
+    'low': ('Low stock (at or below reorder level)', lambda i: (i['quantity_in_stock'] or 0) <= (i['reorder_level'] or 0)),
+    'out': ('Out of stock', lambda i: (i['quantity_in_stock'] or 0) <= 0),
+}
+
+
 @expense_bp.route('/inventory')
 @login_required
 def inventory():
-    inventory = ExpenseModel.get_inventory()
+    all_items = ExpenseModel.get_inventory()
     stats = ExpenseModel.get_inventory_stats()
-    return render_template('expenses/inventory.html', inventory=inventory, stats=stats)
+
+    active_filter = request.args.get('filter', '')
+    inventory, filter_label = all_items, None
+    if active_filter in INVENTORY_FILTERS:
+        filter_label, keep = INVENTORY_FILTERS[active_filter]
+        inventory = [i for i in all_items if keep(i)]
+    else:
+        active_filter = ''
+
+    return render_template('expenses/inventory.html', inventory=inventory, stats=stats,
+                           active_filter=active_filter, filter_label=filter_label)
 
 
 @expense_bp.route('/inventory/add', methods=['GET', 'POST'])

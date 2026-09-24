@@ -32,39 +32,46 @@
         <div class="o_card_body">
             <!-- KPI Metrics Row -->
             <div class="o_kpi_grid">
-                <div class="o_kpi_card">
+                <a href="{{ url_for('permit.list_permits') }}" class="o_kpi_card" title="Show all permits">
                     <div class="o_kpi_icon bg-soft-info">
                         <i class="fas fa-file-contract"></i>
                     </div>
-                    <div class="o_kpi_value">{{ permits|length }}</div>
+                    <div class="o_kpi_value">{{ all_permits|length }}</div>
                     <div class="o_kpi_label">Total Permits</div>
                     <div class="o_kpi_sub">All records</div>
-                </div>
-                <div class="o_kpi_card">
+                </a>
+                <a href="{{ url_for('permit.list_permits', filter='valid') }}" class="o_kpi_card {% if active_filter == 'valid' %}is-active{% endif %}" title="Show valid permits">
                     <div class="o_kpi_icon bg-soft-success">
                         <i class="fas fa-check-circle"></i>
                     </div>
-                    <div class="o_kpi_value">{{ permits|selectattr('days_until_expiry', 'number')|selectattr('days_until_expiry', '>=', 30)|list|length }}</div>
+                    <div class="o_kpi_value">{{ all_permits|selectattr('days_until_expiry', 'number')|selectattr('days_until_expiry', '>=', 30)|list|length }}</div>
                     <div class="o_kpi_label">Valid</div>
                     <div class="o_kpi_sub">30+ days left</div>
-                </div>
-                <div class="o_kpi_card">
+                </a>
+                <a href="{{ url_for('permit.list_permits', filter='expiring') }}" class="o_kpi_card {% if active_filter == 'expiring' %}is-active{% endif %}" title="Show permits expiring soon">
                     <div class="o_kpi_icon bg-soft-warning">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <div class="o_kpi_value">{{ permits|selectattr('days_until_expiry', 'number')|selectattr('days_until_expiry', '>=', 0)|selectattr('days_until_expiry', '<', 30)|list|length }}</div>
+                    <div class="o_kpi_value">{{ all_permits|selectattr('days_until_expiry', 'number')|selectattr('days_until_expiry', '>=', 0)|selectattr('days_until_expiry', '<', 30)|list|length }}</div>
                     <div class="o_kpi_label">Expiring Soon</div>
                     <div class="o_kpi_sub">Within 30 days</div>
-                </div>
-                <div class="o_kpi_card">
+                </a>
+                <a href="{{ url_for('permit.list_permits', filter='expired') }}" class="o_kpi_card {% if active_filter == 'expired' %}is-active{% endif %}" title="Show expired permits">
                     <div class="o_kpi_icon bg-soft-danger">
                         <i class="fas fa-times-circle"></i>
                     </div>
-                    <div class="o_kpi_value">{{ permits|selectattr('days_until_expiry', 'number')|selectattr('days_until_expiry', '<', 0)|list|length }}</div>
+                    <div class="o_kpi_value">{{ all_permits|selectattr('days_until_expiry', 'number')|selectattr('days_until_expiry', '<', 0)|list|length }}</div>
                     <div class="o_kpi_label">Expired</div>
                     <div class="o_kpi_sub">Overdue</div>
-                </div>
+                </a>
             </div>
+
+            {% if active_filter %}
+            <div class="o_filter_note">
+                <i class="fas fa-filter"></i> Showing: <strong>{{ filter_label }}</strong> ({{ permits|length }})
+                <a href="{{ url_for('permit.list_permits') }}"><i class="fas fa-times me-1"></i>Show all permits</a>
+            </div>
+            {% endif %}
 
             <!-- Expiring Soon Alert (Odoo Info Box) -->
             {% if expiring_soon %}
@@ -91,9 +98,9 @@
                         <label class="o_filter_label"><i class="fas fa-filter"></i> Status</label>
                         <select id="statusFilter" class="o_select">
                             <option value="all">All Permits</option>
-                            <option value="valid">Valid (30+ days)</option>
-                            <option value="expiring">Expiring Soon (<30 days)</option>
-                            <option value="expired">Expired</option>
+                            <option value="valid" {% if active_filter == 'valid' %}selected{% endif %}>Valid (30+ days)</option>
+                            <option value="expiring" {% if active_filter == 'expiring' %}selected{% endif %}>Expiring Soon (<30 days)</option>
+                            <option value="expired" {% if active_filter == 'expired' %}selected{% endif %}>Expired</option>
                         </select>
                     </div>
                     <div class="o_filter_actions">
@@ -599,9 +606,17 @@
         }
         
         searchInput.addEventListener('input', filterTable);
-        statusFilter.addEventListener('change', filterTable);
-        
+        // the status filter is applied on the server (same as clicking a box at the top)
+        statusFilter.addEventListener('change', function() {
+            const base = "{{ url_for('permit.list_permits') }}";
+            window.location.href = statusFilter.value === 'all' ? base : base + '?filter=' + statusFilter.value;
+        });
+
         resetBtn.addEventListener('click', function() {
+            {% if active_filter %}
+            window.location.href = "{{ url_for('permit.list_permits') }}";
+            return;
+            {% endif %}
             searchInput.value = '';
             statusFilter.value = 'all';
             filterTable();

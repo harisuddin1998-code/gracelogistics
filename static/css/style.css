@@ -75,3 +75,66 @@ body {
         margin: 0 !important;
     }
 }
+
+/* ---- Clickable KPI boxes (<a class="o_metric_card"> / <a class="o_kpi_card">) ---- */
+a.o_metric_card,
+a.o_kpi_card {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+a.o_metric_card:hover,
+a.o_kpi_card:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+a.o_metric_card:focus-visible,
+a.o_kpi_card:focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 3px;
+}
+
+/* the box whose filter is currently applied */
+.o_metric_card.is-active,
+.o_kpi_card.is-active {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* "Showing: ..." bar above a list that was filtered by clicking a box */
+.o_filter_note {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    padding: 0.6rem 1rem;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 12px;
+    color: #1E3A8A;
+    font-size: 0.85rem;
+}
+
+.o_filter_note a {
+    margin-left: auto;
+    font-weight: 600;
+    color: #1E3A8A;
+    text-decoration: none;
+}
+
+.o_filter_note a:hover {
+    text-decoration: underline;
+}
+
+body.dark-theme .o_filter_note {
+    background: #172032;
+    border-color: #2D3A5E;
+    color: #BFDBFE;
+}
+
+body.dark-theme .o_filter_note a {
+    color: #BFDBFE;
+}

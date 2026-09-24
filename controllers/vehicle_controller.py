@@ -37,11 +37,37 @@ def _vehicle_form_data():
     }
 
 
+# Filters behind the clickable boxes on the vehicle list: ?filter=<key>
+VEHICLE_FILTERS = {
+    'active': ('Operational vehicles', lambda v: v['status'] == 'Active'),
+    'repair': ('Vehicles under maintenance', lambda v: v['status'] == 'Under Repair'),
+    'retired': ('Retired vehicles', lambda v: v['status'] == 'Retired'),
+    'unassigned': ('Vehicles without a driver', lambda v: not v['assigned_driver_id']),
+}
+
+
 @vehicle_bp.route('/')
 @login_required
 def list_vehicles():
-    vehicles = VehicleModel.get_all_vehicles()
-    return render_template('vehicles/list.html', vehicles=vehicles)
+    all_vehicles = VehicleModel.get_all_vehicles()
+
+    active_filter = request.args.get('filter', '')
+    vehicles, filter_label = all_vehicles, None
+    if active_filter in VEHICLE_FILTERS:
+        filter_label, keep = VEHICLE_FILTERS[active_filter]
+        vehicles = [v for v in all_vehicles if keep(v)]
+    else:
+        active_filter = ''
+
+    # box counts always describe the whole fleet, not the filtered rows
+    stats = {
+        'total': len(all_vehicles),
+        'active': sum(1 for v in all_vehicles if v['status'] == 'Active'),
+        'repair': sum(1 for v in all_vehicles if v['status'] == 'Under Repair'),
+        'unassigned': sum(1 for v in all_vehicles if not v['assigned_driver_id']),
+    }
+    return render_template('vehicles/list.html', vehicles=vehicles, stats=stats,
+                           active_filter=active_filter, filter_label=filter_label)
 
 @vehicle_bp.route('/add', methods=['GET', 'POST'])
 @login_required
