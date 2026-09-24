@@ -166,7 +166,7 @@ class ExpenseModel:
         # Get part price
         cursor.execute("SELECT unit_cost FROM spare_parts_inventory WHERE part_id = ?", (data['part_id'],))
         part = cursor.fetchone()
-        unit_price = part['unit_cost'] if part else 0
+        unit_price = (part['unit_cost'] or 0) if part else 0
         total_cost = data['quantity_used'] * unit_price
         
         # Update stock
@@ -204,8 +204,8 @@ class ExpenseModel:
             SELECT e.*, v.registration_no, v.make, v.model,
                    p.part_name, p.part_number
             FROM spare_parts_expense e
-            JOIN vehicles v ON e.vehicle_id = v.vehicle_id
-            JOIN spare_parts_inventory p ON e.part_id = p.part_id
+            LEFT JOIN vehicles v ON e.vehicle_id = v.vehicle_id
+            LEFT JOIN spare_parts_inventory p ON e.part_id = p.part_id
             WHERE 1=1
         '''
         params = []

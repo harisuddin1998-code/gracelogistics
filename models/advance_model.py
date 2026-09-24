@@ -29,7 +29,7 @@ class AdvanceModel:
         cursor.execute('''
             SELECT a.*, d.full_name, d.base_salary, d.phone, d.license_no
             FROM driver_advances a
-            JOIN drivers d ON a.driver_id = d.driver_id
+            LEFT JOIN drivers d ON a.driver_id = d.driver_id
             ORDER BY a.date DESC
         ''')
         
@@ -46,7 +46,7 @@ class AdvanceModel:
         cursor.execute('''
             SELECT a.*, d.full_name, d.base_salary, d.phone, d.license_no
             FROM driver_advances a
-            JOIN drivers d ON a.driver_id = d.driver_id
+            LEFT JOIN drivers d ON a.driver_id = d.driver_id
             WHERE a.status = 'Pending'
             ORDER BY a.date DESC
         ''')
@@ -80,7 +80,7 @@ class AdvanceModel:
         cursor.execute('''
             SELECT a.*, d.full_name, d.base_salary, d.phone, d.license_no
             FROM driver_advances a
-            JOIN drivers d ON a.driver_id = d.driver_id
+            LEFT JOIN drivers d ON a.driver_id = d.driver_id
             WHERE a.advance_id = ?
         ''', (advance_id,))
         

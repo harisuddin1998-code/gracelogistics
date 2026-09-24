@@ -3,6 +3,7 @@ from functools import wraps
 from models.fuel_model import FuelModel
 from models.vehicle_model import VehicleModel
 from datetime import datetime
+from utils.helpers import form_text, form_float, form_int, form_date, form_id
 
 fuel_bp = Blueprint('fuel', __name__, url_prefix='/fuel')
 
@@ -15,21 +16,26 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def _fuel_form_data():
+    """Read the fuel form; blank/missing fields never raise."""
+    return {
+        'vehicle_id': form_id(request.form, 'vehicle_id'),
+        'date': form_date(request.form, 'date'),
+        'liters': form_float(request.form, 'liters'),
+        'cost_per_liter': form_float(request.form, 'cost_per_liter'),
+        'odometer_reading': form_int(request.form, 'odometer_reading'),
+        'fuel_station': form_text(request.form, 'fuel_station')
+    }
+
+
 @fuel_bp.route('/entry', methods=['GET', 'POST'])
 @login_required
 def fuel_entry():
     if request.method == 'POST':
         try:
-            data = {
-                'vehicle_id': request.form['vehicle_id'],
-                'date': request.form['date'],
-                'liters': float(request.form['liters']),
-                'cost_per_liter': float(request.form['cost_per_liter']),
-                'odometer_reading': int(request.form['odometer_reading']),
-                'fuel_station': request.form.get('fuel_station', ''),
-                'receipt_image': ''
-            }
-            
+            data = _fuel_form_data()
+            data['receipt_image'] = ''
+
             fuel_id = FuelModel.add_fuel_entry(data)
             
             # Check fuel efficiency alert
@@ -57,14 +63,7 @@ def edit_fuel(fuel_id):
     
     if request.method == 'POST':
         try:
-            data = {
-                'vehicle_id': request.form['vehicle_id'],
-                'date': request.form['date'],
-                'liters': float(request.form['liters']),
-                'cost_per_liter': float(request.form['cost_per_liter']),
-                'odometer_reading': int(request.form['odometer_reading']),
-                'fuel_station': request.form.get('fuel_station', '')
-            }
+            data = _fuel_form_data()
             FuelModel.update_fuel_entry(fuel_id, data)
             flash('Fuel entry updated successfully!', 'success')
             return redirect(url_for('fuel.fuel_report'))
@@ -100,8 +99,8 @@ def fuel_report():
     vehicles = VehicleModel.get_all_vehicles()
     
     # Calculate statistics
-    total_cost = sum(entry['total_cost'] for entry in entries)
-    total_liters = sum(entry['liters'] for entry in entries)
+    total_cost = sum((entry['total_cost'] or 0) for entry in entries)
+    total_liters = sum((entry['liters'] or 0) for entry in entries)
     avg_cost_per_liter = (total_cost / total_liters) if total_liters > 0 else 0
     
     return render_template('fuel/report.html', entries=entries, vehicles=vehicles, 

@@ -6,6 +6,7 @@ from models.vendor_model import VendorModel
 from datetime import datetime
 import pandas as pd
 from io import BytesIO
+from utils.helpers import form_text, form_text_or_none, form_float, form_int, form_date, form_id
 
 expense_bp = Blueprint('expense', __name__, url_prefix='/expenses')
 
@@ -30,14 +31,14 @@ def spare_parts():
     if request.method == 'POST':
         try:
             data = {
-                'vehicle_id': request.form['vehicle_id'],
-                'part_id': request.form['part_id'],
-                'vendor_id': request.form.get('vendor_id'),
-                'date': request.form['date'],
-                'quantity_used': int(request.form['quantity_used']),
-                'mechanic_name': request.form.get('mechanic_name', ''),
-                'failure_reason': request.form.get('failure_reason', ''),
-                'warranty_until': request.form.get('warranty_until') if request.form.get('warranty_until') else None
+                'vehicle_id': form_id(request.form, 'vehicle_id'),
+                'part_id': form_id(request.form, 'part_id'),
+                'vendor_id': form_id(request.form, 'vendor_id'),
+                'date': form_date(request.form, 'date'),
+                'quantity_used': form_int(request.form, 'quantity_used'),
+                'mechanic_name': form_text(request.form, 'mechanic_name'),
+                'failure_reason': form_text(request.form, 'failure_reason'),
+                'warranty_until': form_date(request.form, 'warranty_until')
             }
             
             ExpenseModel.add_expense(data)
@@ -107,16 +108,17 @@ def add_inventory():
     if request.method == 'POST':
         try:
             data = {
-                'part_name': request.form['part_name'],
-                'part_number': request.form['part_number'],
-                'category': request.form['category'],
-                'quantity_in_stock': int(request.form['quantity_in_stock']),
-                'reorder_level': int(request.form['reorder_level']),
-                'unit_cost': float(request.form['unit_cost']),
-                'selling_price': float(request.form.get('selling_price', 0)),
-                'location': request.form.get('location', ''),
-                'supplier_name': request.form.get('supplier_name', ''),
-                'last_ordered_date': request.form.get('last_ordered_date') if request.form.get('last_ordered_date') else None
+                'part_name': form_text(request.form, 'part_name'),
+                # NULL (not '') when blank so several parts can be saved without a part number
+                'part_number': form_text_or_none(request.form, 'part_number'),
+                'category': form_text_or_none(request.form, 'category'),
+                'quantity_in_stock': form_int(request.form, 'quantity_in_stock'),
+                'reorder_level': form_int(request.form, 'reorder_level'),
+                'unit_cost': form_float(request.form, 'unit_cost'),
+                'selling_price': form_float(request.form, 'selling_price'),
+                'location': form_text(request.form, 'location'),
+                'supplier_name': form_text(request.form, 'supplier_name'),
+                'last_ordered_date': form_date(request.form, 'last_ordered_date')
             }
             
             ExpenseModel.add_inventory_item(data)
@@ -140,14 +142,14 @@ def edit_inventory(part_id):
     if request.method == 'POST':
         try:
             data = {
-                'part_name': request.form['part_name'],
-                'part_number': request.form['part_number'],
-                'category': request.form['category'],
-                'reorder_level': int(request.form['reorder_level']),
-                'unit_cost': float(request.form['unit_cost']),
-                'selling_price': float(request.form.get('selling_price', 0)),
-                'location': request.form.get('location', ''),
-                'supplier_name': request.form.get('supplier_name', '')
+                'part_name': form_text(request.form, 'part_name'),
+                'part_number': form_text_or_none(request.form, 'part_number'),
+                'category': form_text_or_none(request.form, 'category'),
+                'reorder_level': form_int(request.form, 'reorder_level'),
+                'unit_cost': form_float(request.form, 'unit_cost'),
+                'selling_price': form_float(request.form, 'selling_price'),
+                'location': form_text(request.form, 'location'),
+                'supplier_name': form_text(request.form, 'supplier_name')
             }
             
             ExpenseModel.update_inventory_item(part_id, data)
@@ -171,8 +173,8 @@ def delete_inventory(part_id):
 @expense_bp.route('/inventory/stock/<int:part_id>', methods=['POST'])
 @login_required
 def update_stock(part_id):
-    quantity = int(request.form['quantity'])
-    operation = request.form['operation']
+    quantity = form_int(request.form, 'quantity')
+    operation = form_text(request.form, 'operation', 'add')
     
     ExpenseModel.update_stock(part_id, quantity, operation)
     flash(f'Stock updated successfully!', 'success')
@@ -205,7 +207,7 @@ def report():
             SUM(e.quantity_used) as total_quantity,
             SUM(e.total_cost) as total_cost
         FROM spare_parts_expense e
-        JOIN spare_parts_inventory p ON e.part_id = p.part_id
+        LEFT JOIN spare_parts_inventory p ON e.part_id = p.part_id
         GROUP BY p.part_id
         ORDER BY total_quantity DESC
         LIMIT 10

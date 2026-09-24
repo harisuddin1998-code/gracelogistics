@@ -49,7 +49,7 @@
                             <label class="o_form_label">Select Vehicle <span class="o_required">*</span></label>
                             <div class="o_input_wrapper">
                                 <i class="fas fa-truck o_field_icon"></i>
-                                <select name="vehicle_id" id="vehicle_id" class="o_select" required>
+                                <select name="vehicle_id" id="vehicle_id" class="o_select">
                                     <option value="">-- Select Vehicle --</option>
                                     {% for v in vehicles %}
                                     <option value="{{ v.vehicle_id }}" 
@@ -83,7 +83,7 @@
                                 <label class="o_form_label">Date <span class="o_required">*</span></label>
                                 <div class="o_input_currency">
                                     <span class="o_currency_symbol"><i class="fas fa-calendar-day"></i></span>
-                                    <input type="date" name="date" id="fuelDate" value="{{ today }}" required>
+                                    <input type="date" name="date" id="fuelDate" value="{{ today }}">
                                 </div>
                             </div>
                             <div class="o_field_widget">
@@ -107,7 +107,7 @@
                                 <div class="o_input_currency">
                                     <span class="o_currency_symbol"><i class="fas fa-tint"></i></span>
                                     <input type="number" step="0.01" name="liters" id="liters" 
-                                           placeholder="0.00" required>
+                                           placeholder="0.00">
                                 </div>
                             </div>
                             <div class="o_field_widget">
@@ -115,7 +115,7 @@
                                 <div class="o_input_currency">
                                     <span class="o_currency_symbol">₨</span>
                                     <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter" 
-                                           placeholder="0.00" required>
+                                           placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -133,7 +133,7 @@
                             <div class="o_input_currency">
                                 <span class="o_currency_symbol"><i class="fas fa-road"></i></span>
                                 <input type="number" name="odometer_reading" id="odometerReading" 
-                                       placeholder="Current mileage" required>
+                                       placeholder="Current mileage">
                             </div>
                             <span class="o_field_help">Current vehicle odometer reading</span>
                         </div>

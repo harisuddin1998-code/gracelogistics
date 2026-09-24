@@ -4,6 +4,7 @@ from models.driver_model import DriverModel
 from models.vehicle_model import VehicleModel
 from models.advance_model import AdvanceModel
 from datetime import date, datetime
+from utils.helpers import form_text, form_text_or_none, form_float, form_date, form_id
 
 driver_bp = Blueprint('driver', __name__, url_prefix='/drivers')
 
@@ -18,6 +19,20 @@ def login_required(f):
     return decorated_function
 
 
+def _driver_form_data():
+    """Read the driver form; blank/missing fields never raise."""
+    return {
+        'full_name': form_text(request.form, 'full_name'),
+        # NULL (not '') when blank so several drivers can be saved without a licence number
+        'license_no': form_text_or_none(request.form, 'license_no'),
+        'phone': form_text(request.form, 'phone'),
+        'address': form_text(request.form, 'address'),
+        'joining_date': form_date(request.form, 'joining_date'),
+        'base_salary': form_float(request.form, 'base_salary'),
+        'status': form_text(request.form, 'status', 'Active')
+    }
+
+
 @driver_bp.route('/')
 @login_required
 def list_drivers():
@@ -29,15 +44,7 @@ def list_drivers():
 @login_required
 def add_driver():
     if request.method == 'POST':
-        data = {
-            'full_name': request.form['full_name'],
-            'license_no': request.form['license_no'],
-            'phone': request.form['phone'],
-            'address': request.form['address'],
-            'joining_date': request.form['joining_date'],
-            'base_salary': request.form['base_salary'],
-            'status': request.form.get('status', 'Active')
-        }
+        data = _driver_form_data()
         
         driver_id = DriverModel.add_driver(data)
         flash('Driver added successfully!', 'success')
@@ -55,15 +62,7 @@ def edit_driver(driver_id):
         return redirect(url_for('driver.list_drivers'))
     
     if request.method == 'POST':
-        data = {
-            'full_name': request.form['full_name'],
-            'license_no': request.form['license_no'],
-            'phone': request.form['phone'],
-            'address': request.form['address'],
-            'joining_date': request.form['joining_date'],
-            'base_salary': request.form['base_salary'],
-            'status': request.form.get('status', 'Active')
-        }
+        data = _driver_form_data()
         
         DriverModel.update_driver(driver_id, data)
         flash('Driver updated successfully!', 'success')
@@ -88,15 +87,16 @@ def delete_driver(driver_id):
 @login_required
 def advance_salary():
     if request.method == 'POST':
-        driver_id = request.form['driver_id']
-        amount = float(request.form['amount'])
-        reason = request.form['reason']
-        advance_date = request.form.get('date', date.today().strftime('%Y-%m-%d'))
+        driver_id = form_id(request.form, 'driver_id')
+        amount = form_float(request.form, 'amount')
+        reason = form_text(request.form, 'reason')
+        advance_date = form_date(request.form, 'date')
         
         # Check if amount exceeds 50% of salary
-        driver = DriverModel.get_driver_by_id(driver_id)
-        if driver and amount > (driver['base_salary'] * 0.5):
-            flash(f'Advance amount cannot exceed 50% of salary (PKR {driver["base_salary"] * 0.5:.2f})', 'danger')
+        driver = DriverModel.get_driver_by_id(driver_id) if driver_id else None
+        max_advance = ((driver['base_salary'] or 0) * 0.5) if driver else 0
+        if driver and amount > max_advance:
+            flash(f'Advance amount cannot exceed 50% of salary (PKR {max_advance:.2f})', 'danger')
             return redirect(url_for('driver.advance_salary'))
         
         data = {
@@ -108,7 +108,8 @@ def advance_salary():
         }
         
         AdvanceModel.add_advance(data)
-        DriverModel.update_advance_balance(driver_id, amount, 'add')
+        if driver_id:
+            DriverModel.update_advance_balance(driver_id, amount, 'add')
         
         flash(f'Advance salary of PKR {amount:,.2f} recorded successfully!', 'success')
         return redirect(url_for('driver.advance_salary'))
@@ -133,13 +134,14 @@ def edit_advance(advance_id):
         return redirect(url_for('driver.advance_salary'))
     
     if request.method == 'POST':
-        amount = float(request.form['amount'])
-        reason = request.form['reason']
-        advance_date = request.form['date']
+        amount = form_float(request.form, 'amount')
+        reason = form_text(request.form, 'reason')
+        advance_date = form_date(request.form, 'date')
         
         # Update driver balance
-        if amount != advance['amount']:
-            difference = amount - advance['amount']
+        old_amount = advance['amount'] or 0
+        if amount != old_amount and advance['driver_id']:
+            difference = amount - old_amount
             if difference > 0:
                 DriverModel.update_advance_balance(advance['driver_id'], difference, 'add')
             else:
@@ -165,7 +167,7 @@ def mark_advance_deducted(advance_id):
     if advance:
         current_month = date.today().strftime('%Y-%m')
         AdvanceModel.mark_deducted(advance_id, current_month)
-        DriverModel.update_advance_balance(advance['driver_id'], advance['amount'], 'deduct')
+        DriverModel.update_advance_balance(advance['driver_id'], advance['amount'] or 0, 'deduct')
         flash('Advance marked as deducted from salary!', 'success')
     else:
         flash('Advance record not found!', 'danger')
@@ -192,7 +194,7 @@ def pay_back_advance(advance_id):
     advance = AdvanceModel.get_advance_by_id(advance_id)
     if advance:
         AdvanceModel.mark_paid_back(advance_id)
-        DriverModel.update_advance_balance(advance['driver_id'], advance['amount'], 'deduct')
+        DriverModel.update_advance_balance(advance['driver_id'], advance['amount'] or 0, 'deduct')
         flash('Advance marked as paid back!', 'success')
     else:
         flash('Advance record not found!', 'danger')

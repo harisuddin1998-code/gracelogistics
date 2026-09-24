@@ -91,18 +91,19 @@
                                 <td><span class="o_date_badge">{{ record.date }}</span></td>
                                 <td><strong>{{ record.registration_no }}</strong><br><small class="text-muted">{{ record.make }} {{ record.model }}</small></td>
                                 <td>
+                                    {% set rtype = record.type or '' %}
                                     <span class="o_type_badge 
-                                        {% if 'Oil' in record.type %}o_badge_oil
-                                        {% elif 'Filter' in record.type %}o_badge_filter
-                                        {% elif 'Tire' in record.type %}o_badge_tire
-                                        {% elif 'Tuning' in record.type %}o_badge_tuning
-                                        {% elif 'Electrical' in record.type %}o_badge_electrical
-                                        {% elif 'Body' in record.type %}o_badge_body
+                                        {% if 'Oil' in rtype %}o_badge_oil
+                                        {% elif 'Filter' in rtype %}o_badge_filter
+                                        {% elif 'Tire' in rtype %}o_badge_tire
+                                        {% elif 'Tuning' in rtype %}o_badge_tuning
+                                        {% elif 'Electrical' in rtype %}o_badge_electrical
+                                        {% elif 'Body' in rtype %}o_badge_body
                                         {% else %}o_badge_default{% endif %}">
                                         {{ record.type }}
                                     </span>
                                 </td>
-                                <td><strong>PKR {{ "{:,.2f}".format(record.cost) }}</strong></td>
+                                <td><strong>PKR {{ "{:,.2f}".format(record.cost or 0) }}</strong></td>
                                 <td>{{ record.next_due_km or '—' }} km</td>
                                 <td>{{ record.next_due_date or '—' }}</td>
                                 <td>{{ record.mechanic_name or record.workshop_name or '—' }}</td>
@@ -150,7 +151,7 @@
                                         {{ record.service_type }}
                                     </span>
                                 </td>
-                                <td><strong>PKR {{ "{:,.2f}".format(record.cost) }}</strong></td>
+                                <td><strong>PKR {{ "{:,.2f}".format(record.cost or 0) }}</strong></td>
                                 <td>{{ record.technician_name or '—' }}</td>
                                 <td>{{ record.description or record.parts_used or '—' | truncate(40) }}</td>
                                 <td class="text-end">

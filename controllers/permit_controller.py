@@ -4,6 +4,7 @@ from models.permit_model import PermitModel
 from models.vehicle_model import VehicleModel
 from database.db_manager import get_db_connection
 from datetime import datetime, timedelta
+from utils.helpers import form_text, form_float, form_date, form_id
 
 permit_bp = Blueprint('permit', __name__, url_prefix='/permits')
 
@@ -15,6 +16,19 @@ def login_required(f):
             return redirect(url_for('auth_login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def _permit_form_data():
+    """Read the permit form; blank/missing fields never raise."""
+    return {
+        'vehicle_id': form_id(request.form, 'vehicle_id'),
+        'issue_date': form_date(request.form, 'issue_date'),
+        'expiry_date': form_date(request.form, 'expiry_date'),
+        'renewal_date': form_date(request.form, 'renewal_date'),
+        'cost': form_float(request.form, 'cost'),
+        'authority_name': form_text(request.form, 'authority_name'),
+        'document_image': ''
+    }
+
 
 @permit_bp.route('/')
 @login_required
@@ -29,15 +43,7 @@ def list_permits():
 def add_permit():
     if request.method == 'POST':
         try:
-            data = {
-                'vehicle_id': request.form['vehicle_id'],
-                'issue_date': request.form['issue_date'],
-                'expiry_date': request.form['expiry_date'],
-                'renewal_date': request.form.get('renewal_date'),
-                'cost': float(request.form.get('cost', 0)),
-                'authority_name': request.form.get('authority_name', ''),
-                'document_image': ''
-            }
+            data = _permit_form_data()
             
             PermitModel.add_permit(data)
             flash('Road permit added successfully!', 'success')
@@ -60,15 +66,7 @@ def edit_permit(permit_id):
     
     if request.method == 'POST':
         try:
-            data = {
-                'vehicle_id': request.form['vehicle_id'],
-                'issue_date': request.form['issue_date'],
-                'expiry_date': request.form['expiry_date'],
-                'renewal_date': request.form.get('renewal_date'),
-                'cost': float(request.form.get('cost', 0)),
-                'authority_name': request.form.get('authority_name', ''),
-                'document_image': ''
-            }
+            data = _permit_form_data()
             PermitModel.full_update_permit(permit_id, data)
             flash('Permit updated successfully!', 'success')
             return redirect(url_for('permit.list_permits'))
@@ -90,8 +88,8 @@ def renew_permit(permit_id):
     if request.method == 'POST':
         try:
             data = {
-                'expiry_date': request.form['expiry_date'],
-                'cost': float(request.form['cost']),
+                'expiry_date': form_date(request.form, 'expiry_date'),
+                'cost': form_float(request.form, 'cost'),
                 'document_image': ''
             }
             

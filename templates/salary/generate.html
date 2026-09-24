@@ -39,7 +39,7 @@
                         <label class="o_form_label">Select Driver <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-user-circle o_field_icon"></i>
-                            <select name="driver_id" id="driver_id" class="o_select" required>
+                            <select name="driver_id" id="driver_id" class="o_select">
                                 <option value="">-- Select Driver --</option>
                                 {% for driver in drivers %}
                                 <option value="{{ driver.driver_id }}" 
@@ -59,14 +59,14 @@
                         <label class="o_form_label">Month <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-calendar-alt o_field_icon"></i>
-                            <input type="month" name="month" class="o_input" value="{{ current_month }}" required>
+                            <input type="month" name="month" class="o_input" value="{{ current_month }}">
                         </div>
                     </div>
                     <div class="o_field_group">
                         <label class="o_form_label">Base Salary (PKR) <span class="o_required">*</span></label>
                         <div class="o_input_currency">
                             <span class="o_currency_symbol">₨</span>
-                            <input type="number" step="0.01" name="base_salary" id="base_salary" class="o_input_currency_field" required>
+                            <input type="number" step="0.01" name="base_salary" id="base_salary" class="o_input_currency_field">
                         </div>
                     </div>
                     <div class="o_field_group">

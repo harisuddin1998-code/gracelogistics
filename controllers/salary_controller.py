@@ -5,6 +5,7 @@ from models.advance_model import AdvanceModel
 from datetime import datetime
 import pandas as pd
 from io import BytesIO
+from utils.helpers import form_text_or_none, form_float, form_float_or_none, form_date, form_id
 
 salary_bp = Blueprint('salary', __name__, url_prefix='/salary')
 
@@ -13,27 +14,27 @@ salary_bp = Blueprint('salary', __name__, url_prefix='/salary')
 def generate_salary():
     """Generate monthly salary for a driver"""
     if request.method == 'POST':
-        month = request.form['month']
-        driver_id = int(request.form['driver_id'])
+        month = form_text_or_none(request.form, 'month')
+        driver_id = form_id(request.form, 'driver_id')
+        driver = DriverModel.get_driver_by_id(driver_id) if driver_id else None
+        driver_name = driver['full_name'] if driver and driver['full_name'] else 'driver'
         
-        # Check if salary already generated for this driver this month
-        if SalaryModel.check_salary_generated(month, driver_id):
-            driver = DriverModel.get_driver_by_id(driver_id)
-            flash(f'Salary already generated for {driver["full_name"]} for {month}!', 'danger')
+        # Check if salary already generated for this driver this month (only when both are given)
+        if month and driver_id and SalaryModel.check_salary_generated(month, driver_id):
+            flash(f'Salary already generated for {driver_name} for {month}!', 'danger')
             return redirect(url_for('salary.generate_salary'))
         
-        driver = DriverModel.get_driver_by_id(driver_id)
-        
         # Get pending advance amount for this driver
-        pending_advance = AdvanceModel.get_total_pending_by_driver(driver_id)
+        pending_advance = AdvanceModel.get_total_pending_by_driver(driver_id) if driver_id else 0
+        advance_deduction = form_float_or_none(request.form, 'advance_deduction')
         
         data = {
-            'base_salary': float(request.form['base_salary']),
-            'advance_deduction': float(request.form.get('advance_deduction', pending_advance)),
-            'bonus': float(request.form.get('bonus', 0)),
-            'penalty': float(request.form.get('penalty', 0)),
-            'payment_date': request.form.get('payment_date', datetime.now().strftime('%Y-%m-%d')),
-            'payment_method': request.form['payment_method'],
+            'base_salary': form_float(request.form, 'base_salary'),
+            'advance_deduction': pending_advance if advance_deduction is None else advance_deduction,
+            'bonus': form_float(request.form, 'bonus'),
+            'penalty': form_float(request.form, 'penalty'),
+            'payment_date': form_date(request.form, 'payment_date'),
+            'payment_method': form_text_or_none(request.form, 'payment_method'),
             'generated_by': 1  # Assuming admin user ID 1
         }
         
@@ -41,7 +42,7 @@ def generate_salary():
         salary_id = SalaryModel.generate_salary_month(driver_id, month, data)
         
         # If advance was deducted, mark the pending advance as deducted
-        if data['advance_deduction'] > 0:
+        if data['advance_deduction'] > 0 and driver_id:
             # Get all pending advances for this driver
             pending_advances = AdvanceModel.get_advances_by_driver(driver_id)
             for advance in pending_advances:
@@ -51,7 +52,7 @@ def generate_salary():
                     DriverModel.update_advance_balance(driver_id, advance['amount'], 'deduct')
                     break  # Deduct one advance at a time
         
-        flash(f'Salary generated successfully for {driver["full_name"]}!', 'success')
+        flash(f'Salary generated successfully for {driver_name}!', 'success')
         return redirect(url_for('salary.print_slip', salary_id=salary_id))
     
     drivers = DriverModel.get_all_drivers()
@@ -294,9 +295,9 @@ def salary_history():
 def bulk_generate():
     """Generate salaries for all active drivers at once"""
     if request.method == 'POST':
-        month = request.form['month']
-        payment_date = request.form.get('payment_date', datetime.now().strftime('%Y-%m-%d'))
-        payment_method = request.form['payment_method']
+        month = form_text_or_none(request.form, 'month')
+        payment_date = form_date(request.form, 'payment_date')
+        payment_method = form_text_or_none(request.form, 'payment_method')
         
         # Get all active drivers
         drivers = DriverModel.get_all_drivers()
@@ -309,7 +310,7 @@ def bulk_generate():
             driver_id = driver['driver_id']
             
             # Check if salary already generated
-            if SalaryModel.check_salary_generated(month, driver_id):
+            if month and SalaryModel.check_salary_generated(month, driver_id):
                 skipped_count += 1
                 continue
             
@@ -317,7 +318,7 @@ def bulk_generate():
             pending_advance = AdvanceModel.get_total_pending_by_driver(driver_id)
             
             data = {
-                'base_salary': float(driver['base_salary']),
+                'base_salary': float(driver['base_salary'] or 0),
                 'advance_deduction': pending_advance,
                 'bonus': 0,
                 'penalty': 0,

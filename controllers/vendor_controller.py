@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.vendor_model import VendorModel
 from models.expense_model import ExpenseModel
+from utils.helpers import form_text, form_int
 
 vendor_bp = Blueprint('vendor', __name__, url_prefix='/vendors')
 
@@ -27,6 +28,20 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def _vendor_form_data():
+    """Read the vendor form; blank/missing fields never raise."""
+    return {
+        'vendor_name': form_text(request.form, 'vendor_name'),
+        'contact_person': form_text(request.form, 'contact_person'),
+        'phone': form_text(request.form, 'phone'),
+        'email': form_text(request.form, 'email'),
+        'address': form_text(request.form, 'address'),
+        'tax_number': form_text(request.form, 'tax_number'),
+        'payment_terms': form_text(request.form, 'payment_terms'),
+        'rating': form_int(request.form, 'rating', 3)
+    }
+
+
 @vendor_bp.route('/')
 @login_required
 def list_vendors():
@@ -37,19 +52,10 @@ def list_vendors():
 @login_required
 def add_vendor():
     if request.method == 'POST':
-        data = {
-            'vendor_name': request.form['vendor_name'],
-            'contact_person': request.form.get('contact_person', ''),
-            'phone': request.form.get('phone', ''),
-            'email': request.form.get('email', ''),
-            'address': request.form.get('address', ''),
-            'tax_number': request.form.get('tax_number', ''),
-            'payment_terms': request.form.get('payment_terms', ''),
-            'rating': int(request.form.get('rating', 3))
-        }
+        data = _vendor_form_data()
         
         vendor_id = VendorModel.add_vendor(data)
-        flash(f'Vendor {data["vendor_name"]} added successfully!', 'success')
+        flash(f'Vendor {data["vendor_name"] or "record"} added successfully!', 'success')
         return redirect(url_for('vendor.list_vendors'))
     
     return render_template('vendors/add.html')
@@ -63,17 +69,8 @@ def edit_vendor(vendor_id):
         return redirect(url_for('vendor.list_vendors'))
     
     if request.method == 'POST':
-        data = {
-            'vendor_name': request.form['vendor_name'],
-            'contact_person': request.form.get('contact_person', ''),
-            'phone': request.form.get('phone', ''),
-            'email': request.form.get('email', ''),
-            'address': request.form.get('address', ''),
-            'tax_number': request.form.get('tax_number', ''),
-            'payment_terms': request.form.get('payment_terms', ''),
-            'rating': int(request.form.get('rating', 3)),
-            'is_active': 1 if request.form.get('is_active') == 'on' else 0
-        }
+        data = _vendor_form_data()
+        data['is_active'] = 1 if request.form.get('is_active') == 'on' else 0
         
         VendorModel.update_vendor(vendor_id, data)
         flash(f'Vendor updated successfully!', 'success')

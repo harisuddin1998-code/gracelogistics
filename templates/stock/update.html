@@ -39,7 +39,7 @@
                         <label class="o_form_label">Vehicle <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-truck o_field_icon"></i>
-                            <select name="vehicle_id" class="o_select" required>
+                            <select name="vehicle_id" class="o_select">
                                 <option value="">-- Select Vehicle --</option>
                                 {% for v in vehicles %}
                                 <option value="{{ v.vehicle_id }}">{{ v.registration_no }} - {{ v.make }} {{ v.model }}</option>
@@ -51,7 +51,7 @@
                         <label class="o_form_label">Date <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-calendar-alt o_field_icon"></i>
-                            <input type="date" name="date" class="o_input" value="{{ today }}" required>
+                            <input type="date" name="date" class="o_input" value="{{ today }}">
                         </div>
                     </div>
                     <div class="o_field_group">

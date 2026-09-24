@@ -117,9 +117,10 @@ def company_info():
     
     if request.method == 'POST':
         company_info = {
-            'name': request.form.get('company_name', 'Vehicle Management System'),
-            'short_name': request.form.get('short_name', 'VMS'),
-            'slogan': request.form.get('slogan', 'Vehicle Management System'),
+            # a blank name/short name falls back to the defaults so the app header is never empty
+            'name': request.form.get('company_name', '').strip() or 'Vehicle Management System',
+            'short_name': request.form.get('short_name', '').strip() or 'VMS',
+            'slogan': request.form.get('slogan', '').strip(),
             'address': request.form.get('company_address', ''),
             'phone': request.form.get('company_phone', ''),
             'email': request.form.get('company_email', ''),

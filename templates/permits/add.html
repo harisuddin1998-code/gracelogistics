@@ -37,7 +37,7 @@
                         <label class="o_form_label">Vehicle <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-truck o_field_icon"></i>
-                            <select name="vehicle_id" class="o_select" required>
+                            <select name="vehicle_id" class="o_select">
                                 <option value="">-- Select Vehicle --</option>
                                 {% for v in vehicles %}
                                 <option value="{{ v.vehicle_id }}" {% if permit and permit.vehicle_id == v.vehicle_id %}selected{% endif %}>
@@ -51,14 +51,14 @@
                         <label class="o_form_label">Issue Date <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-calendar-alt o_field_icon"></i>
-                            <input type="date" name="issue_date" class="o_input" value="{{ permit.issue_date if permit else today }}" required>
+                            <input type="date" name="issue_date" class="o_input" value="{{ permit.issue_date if permit else today }}">
                         </div>
                     </div>
                     <div class="o_field_group">
                         <label class="o_form_label">Expiry Date <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-calendar-times o_field_icon"></i>
-                            <input type="date" name="expiry_date" class="o_input" value="{{ permit.expiry_date if permit else '' }}" required>
+                            <input type="date" name="expiry_date" class="o_input" value="{{ permit.expiry_date if permit else '' }}">
                         </div>
                         <span class="o_field_help">Permit will expire on this date</span>
                     </div>

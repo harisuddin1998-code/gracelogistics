@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
-from database.db_manager import init_database, get_db_connection
+from database.db_manager import init_database, get_db_connection, relax_not_null_constraints
 from models.user_model import UserModel
 import os
 import json
@@ -153,6 +153,13 @@ def create_maintenance_tables():
 
 # Call the function to ensure all maintenance tables exist
 create_maintenance_tables()
+
+# Allow empty fields: drop NOT NULL constraints from data-entry tables (backs up the DB first,
+# does nothing once the tables are already relaxed)
+relax_not_null_constraints()
+
+# Empty (NULL) values render as blank text instead of the word "None"
+app.jinja_env.finalize = lambda value: '' if value is None else value
 
 # ============================================
 # AUTHENTICATION DECORATOR

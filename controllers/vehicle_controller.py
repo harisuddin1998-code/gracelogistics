@@ -2,6 +2,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.vehicle_model import VehicleModel
 from models.driver_model import DriverModel
+from utils.helpers import (form_text, form_text_or_none, form_int_or_none, form_int,
+                           form_float, form_date, form_id)
 
 vehicle_bp = Blueprint('vehicle', __name__, url_prefix='/vehicles')
 
@@ -15,6 +17,26 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def _vehicle_form_data():
+    """Read the vehicle form; blank/missing fields never raise."""
+    registration_no = form_text_or_none(request.form, 'registration_no')
+    return {
+        # NULL (not '') when blank so several vehicles can be saved without a plate number
+        'registration_no': registration_no.upper() if registration_no else None,
+        'make': form_text(request.form, 'make'),
+        'model': form_text(request.form, 'model'),
+        'year': form_int_or_none(request.form, 'year'),
+        'engine_no': form_text(request.form, 'engine_no'),
+        'chassis_no': form_text(request.form, 'chassis_no'),
+        'purchase_date': form_date(request.form, 'purchase_date'),
+        'purchase_cost': form_float(request.form, 'purchase_cost'),
+        'current_odometer': form_int(request.form, 'current_odometer'),
+        'fuel_type': form_text_or_none(request.form, 'fuel_type'),
+        'status': form_text(request.form, 'status', 'Active'),
+        'assigned_driver_id': form_id(request.form, 'assigned_driver_id')
+    }
+
+
 @vehicle_bp.route('/')
 @login_required
 def list_vehicles():
@@ -26,23 +48,10 @@ def list_vehicles():
 def add_vehicle():
     if request.method == 'POST':
         try:
-            data = {
-                'registration_no': request.form['registration_no'].strip().upper(),
-                'make': request.form['make'].strip(),
-                'model': request.form['model'].strip(),
-                'year': request.form.get('year') or None,
-                'engine_no': request.form.get('engine_no', '').strip(),
-                'chassis_no': request.form.get('chassis_no', '').strip(),
-                'purchase_date': request.form.get('purchase_date') or None,
-                'purchase_cost': float(request.form['purchase_cost']) if request.form.get('purchase_cost') else 0,
-                'current_odometer': int(request.form['current_odometer']) if request.form.get('current_odometer') else 0,
-                'fuel_type': request.form['fuel_type'],
-                'status': request.form['status'],
-                'assigned_driver_id': int(request.form['assigned_driver_id']) if request.form.get('assigned_driver_id') else None
-            }
+            data = _vehicle_form_data()
             
             vehicle_id = VehicleModel.add_vehicle(data)
-            flash(f'Vehicle {data["registration_no"]} added successfully!', 'success')
+            flash(f'Vehicle {data["registration_no"] or "record"} added successfully!', 'success')
             return redirect(url_for('vehicle.list_vehicles'))
             
         except Exception as e:
@@ -63,23 +72,10 @@ def edit_vehicle(vehicle_id):
     
     if request.method == 'POST':
         try:
-            data = {
-                'registration_no': request.form['registration_no'].strip().upper(),
-                'make': request.form['make'].strip(),
-                'model': request.form['model'].strip(),
-                'year': request.form.get('year') or None,
-                'engine_no': request.form.get('engine_no', '').strip(),
-                'chassis_no': request.form.get('chassis_no', '').strip(),
-                'purchase_date': request.form.get('purchase_date') or None,
-                'purchase_cost': float(request.form['purchase_cost']) if request.form.get('purchase_cost') else 0,
-                'current_odometer': int(request.form['current_odometer']) if request.form.get('current_odometer') else 0,
-                'fuel_type': request.form['fuel_type'],
-                'status': request.form['status'],
-                'assigned_driver_id': int(request.form['assigned_driver_id']) if request.form.get('assigned_driver_id') else None
-            }
+            data = _vehicle_form_data()
             
             VehicleModel.update_vehicle(vehicle_id, data)
-            flash(f'Vehicle {data["registration_no"]} updated successfully!', 'success')
+            flash(f'Vehicle {data["registration_no"] or "record"} updated successfully!', 'success')
             return redirect(url_for('vehicle.list_vehicles'))
             
         except Exception as e:
@@ -98,7 +94,7 @@ def delete_vehicle(vehicle_id):
             flash('Vehicle not found!', 'danger')
             return redirect(url_for('vehicle.list_vehicles'))
         
-        registration = vehicle['registration_no']
+        registration = vehicle['registration_no'] or 'record'
         VehicleModel.delete_vehicle(vehicle_id)
         flash(f'Vehicle {registration} deleted successfully!', 'success')
         
