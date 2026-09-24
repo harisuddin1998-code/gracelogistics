@@ -80,11 +80,16 @@ class DriverModel:
         
         cursor.execute("SELECT advance_balance FROM drivers WHERE driver_id = ?", (driver_id,))
         current = cursor.fetchone()
+        if current is None:  # advance saved without a driver - nothing to update
+            conn.close()
+            return 0
         
+        current_balance = current['advance_balance'] or 0
+        amount = amount or 0
         if operation == 'add':
-            new_balance = current['advance_balance'] + amount
+            new_balance = current_balance + amount
         else:  # deduct
-            new_balance = current['advance_balance'] - amount
+            new_balance = current_balance - amount
         
         cursor.execute("UPDATE drivers SET advance_balance = ? WHERE driver_id = ?", 
                       (new_balance, driver_id))

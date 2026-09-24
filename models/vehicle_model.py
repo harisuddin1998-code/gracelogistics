@@ -39,12 +39,13 @@ class VehicleModel:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check if registration number already exists
-        cursor.execute("SELECT COUNT(*) FROM vehicles WHERE registration_no = ?", (data['registration_no'],))
-        if cursor.fetchone()[0] > 0:
-            conn.close()
-            raise ValueError(f"Vehicle with registration {data['registration_no']} already exists!")
-        
+        # Check if registration number already exists (a blank plate number is allowed)
+        if data['registration_no']:
+            cursor.execute("SELECT COUNT(*) FROM vehicles WHERE registration_no = ?", (data['registration_no'],))
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                raise ValueError(f"Vehicle with registration {data['registration_no']} already exists!")
+
         cursor.execute('''
             INSERT INTO vehicles (
                 registration_no, make, model, year, engine_no, chassis_no,
@@ -68,12 +69,13 @@ class VehicleModel:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check if registration number already exists for another vehicle
-        cursor.execute("SELECT COUNT(*) FROM vehicles WHERE registration_no = ? AND vehicle_id != ?", 
-                      (data['registration_no'], vehicle_id))
-        if cursor.fetchone()[0] > 0:
-            conn.close()
-            raise ValueError(f"Vehicle with registration {data['registration_no']} already exists!")
+        # Check if registration number already exists for another vehicle (blank is allowed)
+        if data['registration_no']:
+            cursor.execute("SELECT COUNT(*) FROM vehicles WHERE registration_no = ? AND vehicle_id != ?",
+                          (data['registration_no'], vehicle_id))
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                raise ValueError(f"Vehicle with registration {data['registration_no']} already exists!")
         
         cursor.execute('''
             UPDATE vehicles SET

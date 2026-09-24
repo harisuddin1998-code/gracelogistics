@@ -31,7 +31,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Select Vehicle <span class="text-danger">*</span></label>
-                        <select name="vehicle_id" id="vehicle_id" class="form-select" required>
+                        <select name="vehicle_id" id="vehicle_id" class="form-select">
                             {% for v in vehicles %}
                             <option value="{{ v.vehicle_id }}" {% if v.vehicle_id == entry.vehicle_id %}selected{% endif %}>
                                 {{ v.registration_no }} - {{ v.make }} {{ v.model }}
@@ -42,17 +42,17 @@
 
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
-                        <input type="date" name="date" class="form-control" value="{{ entry.date }}" required>
+                        <input type="date" name="date" class="form-control" value="{{ entry.date }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Liters <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" name="liters" id="liters" class="form-control" value="{{ entry.liters }}" required>
+                        <input type="number" step="0.01" name="liters" id="liters" class="form-control" value="{{ entry.liters }}">
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Cost per Liter (PKR) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter" class="form-control" value="{{ entry.cost_per_liter }}" required>
+                        <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter" class="form-control" value="{{ entry.cost_per_liter }}">
                     </div>
 
                     <div class="col-md-4">
@@ -62,7 +62,7 @@
 
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Odometer Reading (km) <span class="text-danger">*</span></label>
-                        <input type="number" name="odometer_reading" class="form-control" value="{{ entry.odometer_reading }}" required>
+                        <input type="number" name="odometer_reading" class="form-control" value="{{ entry.odometer_reading }}">
                     </div>
 
                     <div class="col-md-6">

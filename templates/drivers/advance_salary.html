@@ -45,7 +45,7 @@
                                 <label class="o_form_label">Select Driver <span class="o_required">*</span></label>
                                 <div class="o_input_wrapper">
                                     <i class="fas fa-user o_field_icon"></i>
-                                    <select name="driver_id" id="driver_id" class="o_select" required>
+                                    <select name="driver_id" id="driver_id" class="o_select">
                                         <option value="">-- Select Driver --</option>
                                         {% for driver in drivers %}
                                         <option value="{{ driver.driver_id }}" data-salary="{{ driver.base_salary }}"
@@ -76,7 +76,7 @@
                                     <label class="o_form_label">Date <span class="o_required">*</span></label>
                                     <div class="o_input_currency">
                                         <span class="o_currency_symbol"><i class="fas fa-calendar-alt"></i></span>
-                                        <input type="date" name="date" id="advanceDate" value="{{ today }}" required>
+                                        <input type="date" name="date" id="advanceDate" value="{{ today }}">
                                     </div>
                                 </div>
                                 <div class="o_field_widget">
@@ -84,8 +84,7 @@
                                             class="o_required">*</span></label>
                                     <div class="o_input_currency">
                                         <span class="o_currency_symbol">₨</span>
-                                        <input type="number" step="0.01" name="amount" id="amount" placeholder="0.00"
-                                            required>
+                                        <input type="number" step="0.01" name="amount" id="amount" placeholder="0.00">
                                     </div>
                                     <span class="o_field_help">Maximum allowed: <span id="max_amount">0</span> PKR (50%
                                         of salary)</span>
@@ -112,7 +111,7 @@
 
                         <div class="o_field_widget">
                             <label class="o_form_label">Reason <span class="o_required">*</span></label>
-                            <textarea name="reason" id="advanceReason" class="o_input o_textarea" rows="3" required
+                            <textarea name="reason" id="advanceReason" class="o_input o_textarea" rows="3"
                                 placeholder="e.g., Medical emergency, Family function, Vehicle repair, Education expenses"></textarea>
                             <span class="o_field_help">Brief description of why advance is needed</span>
                         </div>
@@ -183,7 +182,7 @@
                                 PKR {{ "{:,.0f}".format(advance.amount) }}
                             </td>
                             <td class="text-nowrap">
-                                {{ advance.reason[:50] }}{% if advance.reason|length > 50 %}...{% endif %}
+                                {{ (advance.reason or '')[:50] }}{% if (advance.reason or '')|length > 50 %}...{% endif %}
                             </td>
                             <td class="text-end">
                                 <div class="o_action_btns">
@@ -263,7 +262,7 @@
                             <td class="o_driver_name_cell">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="o_avatar_initials">
-                                        {{ advance.full_name[:2]|upper }}
+                                        {{ (advance.full_name or '')[:2]|upper }}
                                     </div>
                                     <div>
                                         <div class="fw-semibold">{{ advance.full_name }}</div>
@@ -277,7 +276,7 @@
                             <td>
                                 <div class="o_reason_text">
                                     <i class="fas fa-quote-left text-muted me-1"></i>
-                                    {{ advance.reason[:60] }}{% if advance.reason|length > 60 %}...{% endif %}
+                                    {{ (advance.reason or '')[:60] }}{% if (advance.reason or '')|length > 60 %}...{% endif %}
                                 </div>
                             </td>
                             <td>

@@ -3,6 +3,7 @@ from functools import wraps
 from models.stock_model import StockModel
 from models.vehicle_model import VehicleModel
 from datetime import datetime
+from utils.helpers import form_text, form_text_or_none, form_float_or_none, form_date, form_id
 
 stock_bp = Blueprint('stock', __name__, url_prefix='/stock')
 
@@ -21,13 +22,13 @@ def update_stock():
     if request.method == 'POST':
         try:
             data = {
-                'vehicle_id': request.form['vehicle_id'],
-                'date': request.form['date'],
-                'fuel_in_tank': float(request.form.get('fuel_in_tank', 0)) if request.form.get('fuel_in_tank') else None,
-                'oil_level': request.form.get('oil_level', 'OK'),
-                'air_filter_status': request.form.get('air_filter_status', 'OK'),
-                'oil_filter_status': request.form.get('oil_filter_status', 'OK'),
-                'notes': request.form.get('notes', '')
+                'vehicle_id': form_id(request.form, 'vehicle_id'),
+                'date': form_date(request.form, 'date'),
+                'fuel_in_tank': form_float_or_none(request.form, 'fuel_in_tank'),
+                'oil_level': form_text_or_none(request.form, 'oil_level'),
+                'air_filter_status': form_text_or_none(request.form, 'air_filter_status'),
+                'oil_filter_status': form_text_or_none(request.form, 'oil_filter_status'),
+                'notes': form_text(request.form, 'notes')
             }
             
             StockModel.update_vehicle_stock(data)

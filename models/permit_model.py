@@ -72,7 +72,7 @@ class PermitModel:
             SELECT p.*, v.registration_no, v.make, v.model,
                    CAST(julianday(p.expiry_date) - julianday('now') AS INTEGER) as days_until_expiry
             FROM road_permits p
-            JOIN vehicles v ON p.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON p.vehicle_id = v.vehicle_id
             ORDER BY p.expiry_date ASC
         ''')
         
@@ -90,7 +90,7 @@ class PermitModel:
             SELECT p.*, v.registration_no, v.make, v.model,
                    CAST(julianday(p.expiry_date) - julianday('now') AS INTEGER) as days_left
             FROM road_permits p
-            JOIN vehicles v ON p.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON p.vehicle_id = v.vehicle_id
             WHERE julianday(p.expiry_date) - julianday('now') <= ?
             AND julianday(p.expiry_date) - julianday('now') >= 0
             ORDER BY days_left ASC
@@ -125,7 +125,7 @@ class PermitModel:
         cursor.execute('''
             SELECT p.*, v.registration_no, v.make, v.model
             FROM road_permits p
-            JOIN vehicles v ON p.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON p.vehicle_id = v.vehicle_id
             WHERE p.permit_id = ?
         ''', (permit_id,))
         
@@ -154,7 +154,7 @@ class PermitModel:
             SELECT p.*, v.registration_no, v.make, v.model,
                    CAST(julianday('now') - julianday(p.expiry_date) AS INTEGER) as days_expired
             FROM road_permits p
-            JOIN vehicles v ON p.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON p.vehicle_id = v.vehicle_id
             WHERE julianday(p.expiry_date) - julianday('now') < 0
             ORDER BY p.expiry_date ASC
         ''')

@@ -117,7 +117,7 @@ def expense_summary():
         total_parts += parts_cost
         
         summary.append({
-            'vehicle': f"{vehicle['registration_no']} - {vehicle['make']} {vehicle['model']}",
+            'vehicle': f"{vehicle['registration_no'] or ''} - {vehicle['make'] or ''} {vehicle['model'] or ''}".strip(),
             'fuel_cost': fuel_cost,
             'maintenance_cost': maintenance_cost,
             'parts_cost': parts_cost,

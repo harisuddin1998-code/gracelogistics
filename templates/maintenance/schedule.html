@@ -37,7 +37,7 @@
                     <div class="o_form_grid o_grid_4cols">
                         <div class="o_field_group">
                             <label class="o_form_label">Vehicle <span class="o_required">*</span></label>
-                            <select name="vehicle_id" class="o_select" required>
+                            <select name="vehicle_id" class="o_select">
                                 <option value="">Select Vehicle</option>
                                 {% for v in vehicles %}
                                 <option value="{{ v.vehicle_id }}">{{ v.registration_no }} – {{ v.make }} {{ v.model }}</option>
@@ -46,7 +46,7 @@
                         </div>
                         <div class="o_field_group">
                             <label class="o_form_label">Maintenance Type <span class="o_required">*</span></label>
-                            <select name="maintenance_type" class="o_select" required>
+                            <select name="maintenance_type" class="o_select">
                                 <option value="Oil Change">🛢️ Oil Change</option>
                                 <option value="Air Filter">🌬️ Air Filter</option>
                                 <option value="Oil Filter">🔧 Oil Filter</option>

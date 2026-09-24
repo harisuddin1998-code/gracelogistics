@@ -38,7 +38,7 @@ class SalaryModel:
         query = '''
             SELECT s.*, d.full_name, d.license_no, d.phone, d.base_salary as driver_base_salary
             FROM salary_records s
-            JOIN drivers d ON s.driver_id = d.driver_id
+            LEFT JOIN drivers d ON s.driver_id = d.driver_id
             WHERE 1=1
         '''
         params = []
@@ -67,7 +67,7 @@ class SalaryModel:
             SELECT s.*, d.full_name, d.license_no, d.phone, d.address,
                    v.registration_no as assigned_vehicle
             FROM salary_records s
-            JOIN drivers d ON s.driver_id = d.driver_id
+            LEFT JOIN drivers d ON s.driver_id = d.driver_id
             LEFT JOIN vehicles v ON d.driver_id = v.assigned_driver_id
             WHERE s.salary_id = ?
         ''', (salary_id,))
@@ -100,7 +100,7 @@ class SalaryModel:
         cursor.execute('''
             SELECT s.*, d.full_name, d.license_no, d.phone
             FROM salary_records s
-            JOIN drivers d ON s.driver_id = d.driver_id
+            LEFT JOIN drivers d ON s.driver_id = d.driver_id
             WHERE s.salary_id = ?
         ''', (salary_id,))
         

@@ -44,7 +44,7 @@ class FuelModel:
         query = '''
             SELECT f.*, v.registration_no, v.make, v.model, v.fuel_type
             FROM fuel_consumption f
-            JOIN vehicles v ON f.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON f.vehicle_id = v.vehicle_id
             WHERE 1=1
         '''
         params = []
@@ -82,7 +82,7 @@ class FuelModel:
         cursor.execute('''
             SELECT f.*, v.registration_no, v.make, v.model
             FROM fuel_consumption f
-            JOIN vehicles v ON f.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON f.vehicle_id = v.vehicle_id
             WHERE f.fuel_id = ?
         ''', (fuel_id,))
         
@@ -336,7 +336,7 @@ class FuelModel:
         cursor.execute('''
             SELECT f.*, v.registration_no, v.make, v.model
             FROM fuel_consumption f
-            JOIN vehicles v ON f.vehicle_id = v.vehicle_id
+            LEFT JOIN vehicles v ON f.vehicle_id = v.vehicle_id
             WHERE f.status = 'Pending'
             ORDER BY f.date DESC
         ''')

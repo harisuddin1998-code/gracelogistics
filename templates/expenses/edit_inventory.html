@@ -39,19 +39,19 @@
                         <label class="o_form_label">Part Name <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-cog o_field_icon"></i>
-                            <input type="text" name="part_name" class="o_input" value="{{ item.part_name }}" required>
+                            <input type="text" name="part_name" class="o_input" value="{{ item.part_name }}">
                         </div>
                     </div>
                     <div class="o_field_group">
                         <label class="o_form_label">Part Number <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-barcode o_field_icon"></i>
-                            <input type="text" name="part_number" class="o_input" value="{{ item.part_number }}" required>
+                            <input type="text" name="part_number" class="o_input" value="{{ item.part_number }}">
                         </div>
                     </div>
                     <div class="o_field_group">
                         <label class="o_form_label">Category <span class="o_required">*</span></label>
-                        <select name="category" class="o_select" required>
+                        <select name="category" class="o_select">
                             <option value="Engine" {% if item.category == 'Engine' %}selected{% endif %}>🔧 Engine</option>
                             <option value="Transmission" {% if item.category == 'Transmission' %}selected{% endif %}>⚙️ Transmission</option>
                             <option value="Brakes" {% if item.category == 'Brakes' %}selected{% endif %}>🛑 Brakes</option>
@@ -75,14 +75,14 @@
                         <label class="o_form_label">Reorder Level <span class="o_required">*</span></label>
                         <div class="o_input_wrapper">
                             <i class="fas fa-exclamation-triangle o_field_icon"></i>
-                            <input type="number" name="reorder_level" class="o_input" value="{{ item.reorder_level }}" required min="0">
+                            <input type="number" name="reorder_level" class="o_input" value="{{ item.reorder_level }}" min="0">
                         </div>
                     </div>
                     <div class="o_field_group">
                         <label class="o_form_label">Unit Cost (PKR) <span class="o_required">*</span></label>
                         <div class="o_input_currency">
                             <span class="o_currency_symbol">₨</span>
-                            <input type="number" step="0.01" name="unit_cost" class="o_input_currency_field" value="{{ item.unit_cost }}" required>
+                            <input type="number" step="0.01" name="unit_cost" class="o_input_currency_field" value="{{ item.unit_cost }}">
                         </div>
                     </div>
                     <div class="o_field_group">

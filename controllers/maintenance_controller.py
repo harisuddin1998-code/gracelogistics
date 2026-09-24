@@ -4,6 +4,8 @@ from datetime import datetime
 from database.db_manager import get_db_connection
 import io
 import pandas as pd
+from utils.helpers import (form_text, form_text_or_none, form_float, form_float_or_none,
+                           form_int, form_int_or_none, form_date, form_id)
 
 maintenance_bp = Blueprint('maintenance', __name__, url_prefix='/maintenance')
 
@@ -27,36 +29,82 @@ def add_maintenance():
     conn.close()
 
     if request.method == 'POST':
-        maintenance_type = request.form.get('maintenance_type')
-        vehicle_id = request.form.get('vehicle_id')
-        date = request.form.get('date')
-        cost = float(request.form.get('cost') or 0)
-        notes = request.form.get('notes', '')
+        # Nothing here is mandatory: blank fields are stored as empty values.
+        maintenance_type = form_text(request.form, 'maintenance_type')
+        vehicle_id = form_id(request.form, 'vehicle_id')
+        date = form_date(request.form, 'date')
+        cost = form_float(request.form, 'cost')
+        notes = form_text(request.form, 'notes')
         created_by = session.get('user_id')
-
-        if not vehicle_id or not date:
-            flash('Vehicle and Date are required', 'danger')
-            return redirect(url_for('maintenance.add_maintenance'))
 
         conn = get_db_connection()
         try:
+            # ----- TUNING -----
+            if maintenance_type == 'tuning':
+                conn.execute('''INSERT INTO tuning 
+                    (vehicle_id, date, tuning_type, cost, technician_name, 
+                     before_performance, after_performance, notes, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (vehicle_id, date, form_text_or_none(request.form, 'tuning_type'), cost,
+                     form_text(request.form, 'technician_name'),
+                     form_text(request.form, 'before_performance'),
+                     form_text(request.form, 'after_performance'), notes, created_by))
+
+            # ----- ELECTRICAL WORK -----
+            elif maintenance_type == 'electrical':
+                conn.execute('''INSERT INTO electrical_work 
+                    (vehicle_id, date, work_type, cost, technician_name, parts_used, hours_spent, notes, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (vehicle_id, date, form_text_or_none(request.form, 'work_type'), cost,
+                     form_text(request.form, 'technician_name'),
+                     form_text(request.form, 'parts_used'),
+                     form_float_or_none(request.form, 'hours_spent'), notes, created_by))
+
+            # ----- BODY WORK -----
+            elif maintenance_type == 'body_work':
+                conn.execute('''INSERT INTO body_work 
+                    (vehicle_id, date, work_type, cost, workshop_name, painter_name, 
+                     color_code, panels_repaired, warranty_months, notes, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (vehicle_id, date, form_text_or_none(request.form, 'work_type'), cost,
+                     form_text(request.form, 'workshop_name'),
+                     form_text(request.form, 'painter_name'),
+                     form_text(request.form, 'color_code'),
+                     form_text(request.form, 'panels_repaired'),
+                     form_int_or_none(request.form, 'warranty_months'), notes, created_by))
+
+            # ----- TIRE CHANGE -----
+            elif maintenance_type == 'tire_change':
+                quantity = form_int(request.form, 'quantity', 1)
+                cost_per_tire = form_float(request.form, 'cost_per_tire')
+                total_cost = cost  # already the total cost from form
+                alignment_done = 1 if request.form.get('alignment_done') else 0
+                balancing_done = 1 if request.form.get('balancing_done') else 0
+
+                conn.execute('''INSERT INTO tire_change 
+                    (vehicle_id, date, tire_position, tire_brand, tire_size, quantity, 
+                     cost_per_tire, total_cost, alignment_done, balancing_done, 
+                     old_tire_condition, next_rotation_km, workshop_name, notes, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (vehicle_id, date, form_text_or_none(request.form, 'tire_position'),
+                     form_text(request.form, 'tire_brand'), form_text(request.form, 'tire_size'),
+                     quantity, cost_per_tire, total_cost, alignment_done, balancing_done,
+                     form_text(request.form, 'old_tire_condition'),
+                     form_int_or_none(request.form, 'next_rotation_km'),
+                     form_text(request.form, 'workshop_name'), notes, created_by))
+
             # ----- ROUTINE MAINTENANCE (maintenance table) -----
-            if maintenance_type in ['oil_change', 'filter_change']:
-                # Determine the exact maintenance_type string
+            # oil change, filter change, or - when no type was chosen - a general record
+            else:
                 if maintenance_type == 'oil_change':
                     maint_type = 'Oil Change'
-                    quantity = float(request.form.get('quantity') or 0)
-                    mechanic_name = request.form.get('mechanic_name')
-                    current_odometer = request.form.get('current_odometer')
-                    next_due_km = request.form.get('next_due_km')
-                    next_due_date = request.form.get('next_due_date') or None
-                else:  # filter_change
-                    maint_type = request.form.get('filter_type')  # e.g., 'Air Filter', 'Oil Filter'
-                    quantity = int(request.form.get('quantity') or 1)
-                    mechanic_name = request.form.get('mechanic_name')
-                    next_due_km = request.form.get('next_due_km')
-                    next_due_date = request.form.get('next_due_date') or None
-                    current_odometer = None
+                    quantity = form_float(request.form, 'quantity', 0)
+                elif maintenance_type == 'filter_change':
+                    maint_type = form_text(request.form, 'filter_type')  # e.g., 'Air Filter', 'Oil Filter'
+                    quantity = form_int(request.form, 'quantity', 1)
+                else:
+                    maint_type = ''
+                    quantity = form_int(request.form, 'quantity', 1)
 
                 unit_price = cost / quantity if quantity else cost
 
@@ -65,79 +113,13 @@ def add_maintenance():
                      next_due_km, next_due_date, mechanic_name, notes, created_by)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                     (vehicle_id, maint_type, date, cost, quantity, unit_price,
-                     next_due_km, next_due_date, mechanic_name, notes, created_by))
-
-            # ----- TUNING -----
-            elif maintenance_type == 'tuning':
-                tuning_type = request.form.get('tuning_type')
-                technician_name = request.form.get('technician_name')
-                before_performance = request.form.get('before_performance')
-                after_performance = request.form.get('after_performance')
-
-                conn.execute('''INSERT INTO tuning 
-                    (vehicle_id, date, tuning_type, cost, technician_name, 
-                     before_performance, after_performance, notes, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (vehicle_id, date, tuning_type, cost, technician_name,
-                     before_performance, after_performance, notes, created_by))
-
-            # ----- ELECTRICAL WORK -----
-            elif maintenance_type == 'electrical':
-                work_type = request.form.get('work_type')
-                technician_name = request.form.get('technician_name')
-                hours_spent = request.form.get('hours_spent')
-                parts_used = request.form.get('parts_used')
-
-                conn.execute('''INSERT INTO electrical_work 
-                    (vehicle_id, date, work_type, cost, technician_name, parts_used, hours_spent, notes, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (vehicle_id, date, work_type, cost, technician_name, parts_used, hours_spent, notes, created_by))
-
-            # ----- BODY WORK -----
-            elif maintenance_type == 'body_work':
-                work_type = request.form.get('work_type')
-                workshop_name = request.form.get('workshop_name')
-                painter_name = request.form.get('painter_name')
-                color_code = request.form.get('color_code')
-                panels_repaired = request.form.get('panels_repaired')
-                warranty_months = request.form.get('warranty_months') or 6
-
-                conn.execute('''INSERT INTO body_work 
-                    (vehicle_id, date, work_type, cost, workshop_name, painter_name, 
-                     color_code, panels_repaired, warranty_months, notes, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (vehicle_id, date, work_type, cost, workshop_name, painter_name,
-                     color_code, panels_repaired, warranty_months, notes, created_by))
-
-            # ----- TIRE CHANGE -----
-            elif maintenance_type == 'tire_change':
-                tire_position = request.form.get('tire_position')
-                tire_brand = request.form.get('tire_brand')
-                tire_size = request.form.get('tire_size')
-                quantity = int(request.form.get('quantity') or 1)
-                cost_per_tire = float(request.form.get('cost_per_tire') or 0)
-                total_cost = cost
-                alignment_done = 1 if request.form.get('alignment_done') else 0
-                balancing_done = 1 if request.form.get('balancing_done') else 0
-                old_tire_condition = request.form.get('old_tire_condition')
-                next_rotation_km = request.form.get('next_rotation_km')
-                workshop_name = request.form.get('workshop_name')
-
-                conn.execute('''INSERT INTO tire_change 
-                    (vehicle_id, date, tire_position, tire_brand, tire_size, quantity, 
-                     cost_per_tire, total_cost, alignment_done, balancing_done, 
-                     old_tire_condition, next_rotation_km, workshop_name, notes, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (vehicle_id, date, tire_position, tire_brand, tire_size, quantity,
-                     cost_per_tire, total_cost, alignment_done, balancing_done,
-                     old_tire_condition, next_rotation_km, workshop_name, notes, created_by))
-
-            else:
-                flash('Invalid maintenance type', 'danger')
-                return redirect(url_for('maintenance.add_maintenance'))
+                     form_int_or_none(request.form, 'next_due_km'),
+                     form_date(request.form, 'next_due_date'),
+                     form_text(request.form, 'mechanic_name'), notes, created_by))
 
             conn.commit()
-            flash(f'{maintenance_type.replace("_", " ").title()} record saved successfully!', 'success')
+            label = maintenance_type.replace("_", " ").title() or 'Maintenance'
+            flash(f'{label} record saved successfully!', 'success')
 
         except Exception as e:
             conn.rollback()
@@ -167,7 +149,7 @@ def history():
                m.mechanic_name, m.notes, m.maintenance_type as type, v.registration_no, v.make, v.model,
                'maintenance' as category
         FROM maintenance m
-        JOIN vehicles v ON m.vehicle_id = v.vehicle_id
+        LEFT JOIN vehicles v ON m.vehicle_id = v.vehicle_id
         WHERE (? = '' OR m.vehicle_id = ?)
         ORDER BY m.date DESC
     ''', (selected_vehicle, selected_vehicle)).fetchall()
@@ -178,7 +160,7 @@ def history():
                t.technician_name as mechanic_name, t.notes, t.tuning_type as type, v.registration_no, v.make, v.model,
                'tuning' as category, t.tuning_type as service_type, t.technician_name, t.notes as description
         FROM tuning t
-        JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+        LEFT JOIN vehicles v ON t.vehicle_id = v.vehicle_id
         WHERE (? = '' OR t.vehicle_id = ?)
         ORDER BY t.date DESC
     ''', (selected_vehicle, selected_vehicle)).fetchall()
@@ -189,7 +171,7 @@ def history():
                e.technician_name as mechanic_name, e.notes, e.work_type as type, v.registration_no, v.make, v.model,
                'electrical' as category, e.work_type as service_type, e.technician_name, e.parts_used as description
         FROM electrical_work e
-        JOIN vehicles v ON e.vehicle_id = v.vehicle_id
+        LEFT JOIN vehicles v ON e.vehicle_id = v.vehicle_id
         WHERE (? = '' OR e.vehicle_id = ?)
         ORDER BY e.date DESC
     ''', (selected_vehicle, selected_vehicle)).fetchall()
@@ -200,7 +182,7 @@ def history():
                COALESCE(b.workshop_name, b.painter_name) as mechanic_name, b.notes, b.work_type as type, v.registration_no, v.make, v.model,
                'body_work' as category
         FROM body_work b
-        JOIN vehicles v ON b.vehicle_id = v.vehicle_id
+        LEFT JOIN vehicles v ON b.vehicle_id = v.vehicle_id
         WHERE (? = '' OR b.vehicle_id = ?)
         ORDER BY b.date DESC
     ''', (selected_vehicle, selected_vehicle)).fetchall()
@@ -208,10 +190,10 @@ def history():
     # 5. Tire change
     tire_records = conn.execute('''
         SELECT tr.tire_id as id, tr.vehicle_id, tr.date, tr.total_cost as cost, tr.next_rotation_km as next_due_km, NULL as next_due_date,
-               tr.workshop_name as mechanic_name, tr.notes, ('Tire Change (' || tr.tire_position || ')') as type, v.registration_no, v.make, v.model,
+               tr.workshop_name as mechanic_name, tr.notes, ('Tire Change' || CASE WHEN tr.tire_position IS NULL OR tr.tire_position = '' THEN '' ELSE ' (' || tr.tire_position || ')' END) as type, v.registration_no, v.make, v.model,
                'tire_change' as category
         FROM tire_change tr
-        JOIN vehicles v ON tr.vehicle_id = v.vehicle_id
+        LEFT JOIN vehicles v ON tr.vehicle_id = v.vehicle_id
         WHERE (? = '' OR tr.vehicle_id = ?)
         ORDER BY tr.date DESC
     ''', (selected_vehicle, selected_vehicle)).fetchall()
@@ -233,8 +215,9 @@ def history():
     for r in body_records: all_records.append(dict(r))
     for r in tire_records: all_records.append(dict(r))
 
-    all_records.sort(key=lambda x: x['date'], reverse=True)
-    tuning_and_elec.sort(key=lambda x: x['date'], reverse=True)
+    # records saved without a date sort last
+    all_records.sort(key=lambda x: x['date'] or '', reverse=True)
+    tuning_and_elec.sort(key=lambda x: x['date'] or '', reverse=True)
 
     return render_template('maintenance/history.html', 
                            vehicles=vehicles, 
@@ -284,14 +267,15 @@ def report():
     summary = []
     total_cost = 0
 
-    def add_summary(name, data_list):
+    def add_summary(name, data_list, cost_key='cost'):
         nonlocal total_cost
         if data_list:
             cnt = len(data_list)
-            total = sum(row['cost'] for row in data_list if row['cost'] is not None)
+            total = sum((row[cost_key] or 0) for row in data_list)
             avg = total / cnt if cnt else 0
-            first = min(row['date'] for row in data_list)
-            last = max(row['date'] for row in data_list)
+            dates = [row['date'] for row in data_list if row['date']]
+            first = min(dates) if dates else None
+            last = max(dates) if dates else None
             summary.append({
                 'maintenance_type': name,
                 'total_count': cnt,
@@ -321,10 +305,10 @@ def report():
     ''').fetchall()
     for mt in maint_types:
         summary.append({
-            'maintenance_type': mt['maintenance_type'],
+            'maintenance_type': mt['maintenance_type'] or 'Not specified',
             'total_count': mt['cnt'],
-            'total_cost': mt['total'],
-            'avg_cost': mt['avg'],
+            'total_cost': mt['total'] or 0,
+            'avg_cost': mt['avg'] or 0,
             'first_date': mt['first'],
             'last_date': mt['last']
         })
@@ -341,7 +325,7 @@ def report():
     add_summary('Body Work', body)
 
     tires = conn.execute(f"SELECT * FROM tire_change WHERE 1=1 {veh_filter} {date_filter}").fetchall()
-    add_summary('Tire Change', tires)
+    add_summary('Tire Change', tires, cost_key='total_cost')
 
     conn.close()
     summary.sort(key=lambda x: x['total_cost'], reverse=True)
@@ -373,31 +357,31 @@ def export_excel():
     maint = conn.execute(f'''
         SELECT m.date, v.registration_no, 'Maintenance' as type, m.maintenance_type as sub_type, 
                m.cost, m.quantity, m.mechanic_name, m.notes
-        FROM maintenance m JOIN vehicles v ON m.vehicle_id = v.vehicle_id
+        FROM maintenance m LEFT JOIN vehicles v ON m.vehicle_id = v.vehicle_id
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
     tuning = conn.execute(f'''
         SELECT t.date, v.registration_no, 'Tuning' as type, t.tuning_type as sub_type, 
                t.cost, NULL as quantity, t.technician_name as mechanic_name, t.notes
-        FROM tuning t JOIN vehicles v ON t.vehicle_id = v.vehicle_id
+        FROM tuning t LEFT JOIN vehicles v ON t.vehicle_id = v.vehicle_id
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
     electrical = conn.execute(f'''
         SELECT e.date, v.registration_no, 'Electrical' as type, e.work_type as sub_type, 
                e.cost, NULL as quantity, e.technician_name as mechanic_name, e.notes
-        FROM electrical_work e JOIN vehicles v ON e.vehicle_id = v.vehicle_id
+        FROM electrical_work e LEFT JOIN vehicles v ON e.vehicle_id = v.vehicle_id
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
     body = conn.execute(f'''
         SELECT b.date, v.registration_no, 'Body Work' as type, b.work_type as sub_type, 
                b.cost, NULL as quantity, b.painter_name as mechanic_name, b.notes
-        FROM body_work b JOIN vehicles v ON b.vehicle_id = v.vehicle_id
+        FROM body_work b LEFT JOIN vehicles v ON b.vehicle_id = v.vehicle_id
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
     tires = conn.execute(f'''
         SELECT tr.date, v.registration_no, 'Tire Change' as type, tr.tire_position as sub_type, 
                tr.total_cost as cost, tr.quantity, tr.workshop_name as mechanic_name, tr.notes
-        FROM tire_change tr JOIN vehicles v ON tr.vehicle_id = v.vehicle_id
+        FROM tire_change tr LEFT JOIN vehicles v ON tr.vehicle_id = v.vehicle_id
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
 
@@ -435,19 +419,23 @@ def export_excel():
 def schedule():
     conn = get_db_connection()
     if request.method == 'POST':
-        vehicle_id = request.form.get('vehicle_id')
-        maintenance_type = request.form.get('maintenance_type')
-        scheduled_date = request.form.get('scheduled_date') or None
-        scheduled_km = request.form.get('scheduled_km') or None
-        assigned_to = request.form.get('assigned_to')
-        notes = request.form.get('notes')
-
-        conn.execute('''INSERT INTO maintenance_schedule 
-                        (vehicle_id, maintenance_type, scheduled_date, scheduled_km, assigned_to, notes, status)
-                        VALUES (?, ?, ?, ?, ?, ?, 'Pending')''',
-                     (vehicle_id, maintenance_type, scheduled_date, scheduled_km, assigned_to, notes))
-        conn.commit()
-        flash('Schedule added successfully', 'success')
+        try:
+            conn.execute('''INSERT INTO maintenance_schedule 
+                            (vehicle_id, maintenance_type, scheduled_date, scheduled_km, assigned_to, notes, status)
+                            VALUES (?, ?, ?, ?, ?, ?, 'Pending')''',
+                         (form_id(request.form, 'vehicle_id'),
+                          form_text(request.form, 'maintenance_type'),
+                          form_date(request.form, 'scheduled_date'),
+                          form_int_or_none(request.form, 'scheduled_km'),
+                          form_text(request.form, 'assigned_to'),
+                          form_text(request.form, 'notes')))
+            conn.commit()
+            flash('Schedule added successfully', 'success')
+        except Exception as e:
+            conn.rollback()
+            flash(f'Database error: {str(e)}', 'danger')
+        finally:
+            conn.close()
         return redirect(url_for('maintenance.schedule'))
 
     vehicles = conn.execute('SELECT vehicle_id, registration_no, make, model FROM vehicles').fetchall()
@@ -456,7 +444,7 @@ def schedule():
                CASE WHEN ms.scheduled_date < date('now') AND ms.status = 'Pending' THEN 'Overdue'
                     ELSE ms.status END as status
         FROM maintenance_schedule ms
-        JOIN vehicles v ON ms.vehicle_id = v.vehicle_id
+        LEFT JOIN vehicles v ON ms.vehicle_id = v.vehicle_id
         ORDER BY ms.scheduled_date ASC, ms.scheduled_km ASC
     ''').fetchall()
     conn.close()
