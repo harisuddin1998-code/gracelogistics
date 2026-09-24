@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 from io import BytesIO
 from utils.helpers import form_text_or_none, form_float, form_float_or_none, form_date, form_id
+from utils.pdf_slip import build_salary_pdf, number_to_words
 
 salary_bp = Blueprint('salary', __name__, url_prefix='/salary')
 
@@ -183,8 +184,11 @@ def print_slip(salary_id):
     <body>
         <div style="text-align: center; margin-bottom: 20px;">
             <button class="btn-print" onclick="window.print()">
-                <i class="fas fa-print"></i> Print / Save as PDF
+                <i class="fas fa-print"></i> Print
             </button>
+            <a class="btn-print" style="text-decoration:none;" href="{{ url_for('salary.print_slip_pdf', salary_id=salary.salary_id) }}">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
         </div>
         <div class="slip-container">
             <div class="header">
@@ -240,36 +244,38 @@ def print_slip(salary_id):
     </html>
     '''
     
-    # Simple number to words for PKR
-    def number_to_words(num):
-        if num < 1000:
-            return f"{int(num)} Rupees Only"
-        elif num < 100000:
-            return f"{int(num/1000)} Thousand {int(num%1000)} Rupees Only"
-        elif num < 10000000:
-            lakhs = int(num / 100000)
-            remainder = int(num % 100000)
-            if remainder > 0:
-                return f"{lakhs} Lakh {int(remainder/1000)} Thousand {remainder%1000} Rupees Only"
-            else:
-                return f"{lakhs} Lakh Rupees Only"
-        else:
-            crores = int(num / 10000000)
-            remainder = int(num % 10000000)
-            if remainder > 0:
-                return f"{crores} Crore {int(remainder/100000)} Lakh Rupees Only"
-            else:
-                return f"{crores} Crore Rupees Only"
-    
     # Get company name for display
     from app import app
     company_name = app.config.get('APP_NAME', 'Vehicle Management System')
-    
-    return render_template_string(slip_html, 
-                                 salary=salary, 
+
+    return render_template_string(slip_html,
+                                 salary=salary,
                                  words=number_to_words(salary['net_payable']),
                                  generated_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                  company_name=company_name)
+
+
+@salary_bp.route('/print/<int:salary_id>/pdf')
+def print_slip_pdf(salary_id):
+    """Download a branded PDF salary slip (with company logo) for a driver"""
+    salary = SalaryModel.get_salary_slip(salary_id)
+
+    if not salary:
+        flash('Salary record not found!', 'danger')
+        return redirect(url_for('salary.salary_history'))
+
+    generated_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    pdf_bytes = build_salary_pdf(dict(salary), generated_date)
+
+    filename = f"Salary_Slip_{salary['full_name'].replace(' ', '_')}_{salary['month']}.pdf"
+    return make_response(
+        pdf_bytes,
+        200,
+        {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+    )
 
 
 @salary_bp.route('/history')
