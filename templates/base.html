@@ -18,6 +18,14 @@
     <link href="{{ url_for('static', filename='css/odoo_theme.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
+    <!-- DataTables (+ Bootstrap 5 styling, + the Responsive extension the vehicle list's
+         responsive.display.modal config needs). Several list pages call $('#table').DataTable(...)
+         but this library was never actually included anywhere - that line threw
+         "Cannot read properties of undefined (reading 'Responsive')" and crashed the whole
+         script block before it ever reached the Delete button's click handler. -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
     <!-- jQuery + Bootstrap load here, in head, so $ is already defined before any page's own
          inline script (inside the page content area) runs. Page scripts used to sit in the DOM
          before the old end-of-body script tags, so loading jQuery there was always too late for
@@ -25,6 +33,36 @@
          Delete button handlers on the vehicle/driver lists never got attached. -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+    <script>
+        // Bootstrap 5 dropped the jQuery plugin layer (no more $.fn.modal/.tooltip/...), but
+        // several pages still call the old Bootstrap-4 jQuery style, e.g. $('#myModal').modal('show')
+        // or $('[data-bs-toggle=tooltip]').tooltip(). Without this, those calls throw
+        // "$(...).modal is not a function" and the delete-confirmation modal never opens.
+        (function ($) {
+            if (!$ || !window.bootstrap) return;
+            ['Modal', 'Tooltip', 'Popover', 'Dropdown', 'Collapse', 'Toast'].forEach(function (name) {
+                var plugin = name.toLowerCase();
+                var Ctor = bootstrap[name];
+                if (!Ctor || $.fn[plugin]) return;
+                $.fn[plugin] = function (optionsOrMethod) {
+                    return this.each(function () {
+                        var existing = Ctor.getInstance(this);
+                        if (typeof optionsOrMethod === 'string') {
+                            var instance = existing || Ctor.getOrCreateInstance(this);
+                            if (typeof instance[optionsOrMethod] === 'function') instance[optionsOrMethod]();
+                        } else {
+                            if (existing) existing.dispose();
+                            new Ctor(this, optionsOrMethod || {});
+                        }
+                    });
+                };
+            });
+        })(window.jQuery);
+    </script>
 
     <style>
         :root {
