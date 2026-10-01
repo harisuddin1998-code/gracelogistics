@@ -77,6 +77,14 @@
                     <div class="o_kpi_sub">Part replacements</div>
                 </div>
                 <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-purple">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="o_kpi_value">PKR {{ "{:,.2f}".format(total_salary) }}</div>
+                    <div class="o_kpi_label">Driver Salary</div>
+                    <div class="o_kpi_sub">Assigned driver's pay</div>
+                </div>
+                <div class="o_kpi_card">
                     <div class="o_kpi_icon bg-soft-danger">
                         <i class="fas fa-chart-line"></i>
                     </div>
@@ -99,6 +107,7 @@
                                 <th>Fuel Cost (PKR)</th>
                                 <th>Maintenance Cost (PKR)</th>
                                 <th>Spare Parts Cost (PKR)</th>
+                                <th>Driver Salary (PKR)</th>
                                 <th>Total Expense (PKR)</th>
                             </tr>
                         </thead>
@@ -109,11 +118,12 @@
                                 <td>{{ "{:,.2f}".format(item.fuel_cost) }}</td>
                                 <td>{{ "{:,.2f}".format(item.maintenance_cost) }}</td>
                                 <td>{{ "{:,.2f}".format(item.parts_cost) }}</td>
+                                <td>{{ "{:,.2f}".format(item.salary_cost) }}</td>
                                 <td><strong>{{ "{:,.2f}".format(item.total) }}</strong></td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">No expense data available for selected month</td>
+                                <td colspan="6" class="text-center text-muted py-4">No expense data available for selected month</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -123,6 +133,7 @@
                                 <th>{{ "{:,.2f}".format(total_fuel) }}</th>
                                 <th>{{ "{:,.2f}".format(total_maintenance) }}</th>
                                 <th>{{ "{:,.2f}".format(total_parts) }}</th>
+                                <th>{{ "{:,.2f}".format(total_salary) }}</th>
                                 <th>{{ "{:,.2f}".format(grand_total) }}</th>
                             </tr>
                         </tfoot>
@@ -353,6 +364,7 @@
     .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
     .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
     .bg-soft-danger { background: #FEF2F2; color: #B91C1C; }
+    .bg-soft-purple { background: #F3E8FF; color: #6B21A8; }
     .o_kpi_value {
         font-size: 1.6rem;
         font-weight: 700;

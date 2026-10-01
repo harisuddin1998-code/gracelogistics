@@ -149,6 +149,32 @@ def create_maintenance_tables():
         ''')
         conn.commit()
         print("Maintenance tables created successfully.")
+
+    # Tyre Puncture is a newer maintenance type, added after the block above, so it is created
+    # unconditionally (IF NOT EXISTS) rather than only when 'maintenance' itself is missing -
+    # otherwise it would never appear on a database that is already running.
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tyre_puncture'")
+    if not cursor.fetchone():
+        cursor.executescript('''
+            CREATE TABLE IF NOT EXISTS tyre_puncture (
+                puncture_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                vehicle_id INTEGER,
+                date DATE,
+                tire_position TEXT,
+                puncture_count INTEGER DEFAULT 1,
+                repair_method TEXT,
+                cost DECIMAL(10,2),
+                workshop_name TEXT,
+                notes TEXT,
+                created_by INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (vehicle_id) REFERENCES vehicles(vehicle_id),
+                FOREIGN KEY (created_by) REFERENCES users(user_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_tyre_puncture_vehicle ON tyre_puncture(vehicle_id);
+        ''')
+        conn.commit()
+        print("Tyre puncture table created successfully.")
     conn.close()
 
 # Call the function to ensure all maintenance tables exist

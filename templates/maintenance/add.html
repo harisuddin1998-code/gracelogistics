@@ -50,6 +50,7 @@
                             <option value="oil_change">🛢️ Oil Change</option>
                             <option value="filter_change">🌬️ Filter Change</option>
                             <option value="tire_change">🛞 Tire Change</option>
+                            <option value="tyre_puncture">🔧 Tyre Puncture</option>
                             <option value="tuning">⚡ Tuning</option>
                             <option value="electrical">🔌 Electrical Work</option>
                             <option value="body_work">🎨 Body Work</option>
@@ -115,6 +116,17 @@
                         <div><div class="o_checkbox_group"><input type="checkbox" name="alignment_done" value="1" class="o_checkbox"> <label>Wheel Alignment Done</label></div></div>
                         <div><div class="o_checkbox_group"><input type="checkbox" name="balancing_done" value="1" class="o_checkbox"> <label>Wheel Balancing Done</label></div></div>
                         <div class="o_full_width"><label class="o_form_label">Old Tire Condition</label><textarea name="old_tire_condition" class="o_input" rows="2"></textarea></div>
+                    </div>
+                </div>
+
+                <!-- Tyre Puncture -->
+                <div id="tyrePunctureFields" class="o_dynamic_section" style="display: none;">
+                    <div class="o_section_title"><i class="fas fa-circle-exclamation"></i> Tyre Puncture Details</div>
+                    <div class="o_form_grid o_grid_3cols">
+                        <div><label class="o_form_label">Tire Position</label><select name="tire_position" class="o_select"><option>Front Left</option><option>Front Right</option><option>Rear Left</option><option>Rear Right</option><option>All Four</option><option>Spare</option></select></div>
+                        <div><label class="o_form_label">Number of Punctures</label><input type="number" name="puncture_count" class="o_input" value="1" min="1"></div>
+                        <div><label class="o_form_label">Repair Method</label><select name="repair_method" class="o_select"><option>Patch Repair</option><option>Plug Repair</option><option>Tube Replacement</option><option>New Tyre Fitted</option></select></div>
+                        <div><label class="o_form_label">Workshop / Mechanic Name</label><input type="text" name="workshop_name" class="o_input"></div>
                     </div>
                 </div>
 
@@ -438,6 +450,7 @@
             oil_change: document.getElementById('oilChangeFields'),
             filter_change: document.getElementById('filterChangeFields'),
             tire_change: document.getElementById('tireChangeFields'),
+            tyre_puncture: document.getElementById('tyrePunctureFields'),
             tuning: document.getElementById('tuningFields'),
             electrical: document.getElementById('electricalFields'),
             body_work: document.getElementById('bodyWorkFields')
