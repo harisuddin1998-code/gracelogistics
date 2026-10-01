@@ -73,6 +73,16 @@ def add_maintenance():
                      form_text(request.form, 'panels_repaired'),
                      form_int_or_none(request.form, 'warranty_months'), notes, created_by))
 
+            # ----- TYRE PUNCTURE -----
+            elif maintenance_type == 'tyre_puncture':
+                conn.execute('''INSERT INTO tyre_puncture
+                    (vehicle_id, date, tire_position, puncture_count, repair_method, cost, workshop_name, notes, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (vehicle_id, date, form_text_or_none(request.form, 'tire_position'),
+                     form_int(request.form, 'puncture_count', 1),
+                     form_text_or_none(request.form, 'repair_method'), cost,
+                     form_text(request.form, 'workshop_name'), notes, created_by))
+
             # ----- TIRE CHANGE -----
             elif maintenance_type == 'tire_change':
                 quantity = form_int(request.form, 'quantity', 1)
@@ -198,6 +208,17 @@ def history():
         ORDER BY tr.date DESC
     ''', (selected_vehicle, selected_vehicle)).fetchall()
 
+    # 6. Tyre puncture
+    puncture_records = conn.execute('''
+        SELECT p.puncture_id as id, p.vehicle_id, p.date, p.cost, NULL as next_due_km, NULL as next_due_date,
+               p.workshop_name as mechanic_name, p.notes, ('Tyre Puncture' || CASE WHEN p.tire_position IS NULL OR p.tire_position = '' THEN '' ELSE ' (' || p.tire_position || ')' END) as type, v.registration_no, v.make, v.model,
+               'tyre_puncture' as category
+        FROM tyre_puncture p
+        LEFT JOIN vehicles v ON p.vehicle_id = v.vehicle_id
+        WHERE (? = '' OR p.vehicle_id = ?)
+        ORDER BY p.date DESC
+    ''', (selected_vehicle, selected_vehicle)).fetchall()
+
     conn.close()
 
     # Combine all records
@@ -214,6 +235,7 @@ def history():
         tuning_and_elec.append(d)
     for r in body_records: all_records.append(dict(r))
     for r in tire_records: all_records.append(dict(r))
+    for r in puncture_records: all_records.append(dict(r))
 
     # records saved without a date sort last
     all_records.sort(key=lambda x: x['date'] or '', reverse=True)
@@ -235,6 +257,7 @@ def delete_maintenance_record(category, record_id):
         'electrical': ('electrical_work', 'electrical_id'),
         'body_work': ('body_work', 'body_work_id'),
         'tire_change': ('tire_change', 'tire_id'),
+        'tyre_puncture': ('tyre_puncture', 'puncture_id'),
     }
     if category in table_map:
         tbl, id_col = table_map[category]
@@ -327,6 +350,9 @@ def report():
     tires = conn.execute(f"SELECT * FROM tire_change WHERE 1=1 {veh_filter} {date_filter}").fetchall()
     add_summary('Tire Change', tires, cost_key='total_cost')
 
+    punctures = conn.execute(f"SELECT * FROM tyre_puncture WHERE 1=1 {veh_filter} {date_filter}").fetchall()
+    add_summary('Tyre Puncture', punctures)
+
     conn.close()
     summary.sort(key=lambda x: x['total_cost'], reverse=True)
 
@@ -379,9 +405,15 @@ def export_excel():
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
     tires = conn.execute(f'''
-        SELECT tr.date, v.registration_no, 'Tire Change' as type, tr.tire_position as sub_type, 
+        SELECT tr.date, v.registration_no, 'Tire Change' as type, tr.tire_position as sub_type,
                tr.total_cost as cost, tr.quantity, tr.workshop_name as mechanic_name, tr.notes
         FROM tire_change tr LEFT JOIN vehicles v ON tr.vehicle_id = v.vehicle_id
+        WHERE 1=1 {veh_filter} {date_filter}
+    ''').fetchall()
+    punctures = conn.execute(f'''
+        SELECT p.date, v.registration_no, 'Tyre Puncture' as type, p.tire_position as sub_type,
+               p.cost, p.puncture_count as quantity, p.workshop_name as mechanic_name, p.notes
+        FROM tyre_puncture p LEFT JOIN vehicles v ON p.vehicle_id = v.vehicle_id
         WHERE 1=1 {veh_filter} {date_filter}
     ''').fetchall()
 
@@ -393,6 +425,7 @@ def export_excel():
     for row in electrical: all_data.append(dict(row))
     for row in body: all_data.append(dict(row))
     for row in tires: all_data.append(dict(row))
+    for row in punctures: all_data.append(dict(row))
 
     if not all_data:
         flash('No data to export', 'warning')

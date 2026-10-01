@@ -87,50 +87,64 @@ def expense_summary():
     total_fuel = 0
     total_maintenance = 0
     total_parts = 0
-    
+    total_salary = 0
+
     for vehicle in vehicles:
         # Get fuel cost for month
         fuel_cost = FuelModel.get_monthly_cost(vehicle['vehicle_id'], month)
-        
+
         # Get maintenance cost for month
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT SUM(cost) as total FROM maintenance 
+            SELECT SUM(cost) as total FROM maintenance
             WHERE vehicle_id = ? AND strftime('%Y-%m', date) = ?
         ''', (vehicle['vehicle_id'], month))
         maint_result = cursor.fetchone()
         maintenance_cost = maint_result['total'] if maint_result['total'] else 0
-        
+
         # Get spare parts cost for month
         cursor.execute('''
-            SELECT SUM(total_cost) as total FROM spare_parts_expense 
+            SELECT SUM(total_cost) as total FROM spare_parts_expense
             WHERE vehicle_id = ? AND strftime('%Y-%m', date) = ?
         ''', (vehicle['vehicle_id'], month))
         parts_result = cursor.fetchone()
         parts_cost = parts_result['total'] if parts_result['total'] else 0
-        
+
+        # Get the assigned driver's salary for the month (0 if no driver assigned, or none generated yet)
+        salary_cost = 0
+        if vehicle['assigned_driver_id']:
+            cursor.execute('''
+                SELECT SUM(net_payable) as total FROM salary_records
+                WHERE driver_id = ? AND month = ?
+            ''', (vehicle['assigned_driver_id'], month))
+            salary_result = cursor.fetchone()
+            salary_cost = salary_result['total'] if salary_result['total'] else 0
+
         conn.close()
-        
+
         total_fuel += fuel_cost
         total_maintenance += maintenance_cost
         total_parts += parts_cost
-        
+        total_salary += salary_cost
+
         summary.append({
             'vehicle': f"{vehicle['registration_no'] or ''} - {vehicle['make'] or ''} {vehicle['model'] or ''}".strip(),
             'fuel_cost': fuel_cost,
             'maintenance_cost': maintenance_cost,
             'parts_cost': parts_cost,
-            'total': fuel_cost + maintenance_cost + parts_cost
+            'salary_cost': salary_cost,
+            'total': fuel_cost + maintenance_cost + parts_cost + salary_cost
         })
-    
-    return render_template('reports/expense_summary.html', 
-                         summary=summary, 
+
+    return render_template('reports/expense_summary.html',
+                         summary=summary,
                          month=month,
                          total_fuel=total_fuel,
                          total_maintenance=total_maintenance,
                          total_parts=total_parts,
-                         grand_total=total_fuel + total_maintenance + total_parts)
+                         total_salary=total_salary,
+                         grand_total=total_fuel + total_maintenance + total_parts + total_salary)
 
 
 @report_bp.route('/export-excel')
