@@ -209,15 +209,19 @@ class FuelModel:
     
     @staticmethod
     def get_monthly_cost(vehicle_id, month):
-        """Get fuel cost for a specific month (format: YYYY-MM)"""
+        """Get fuel cost for a specific month (format: YYYY-MM).
+
+        Counts Pending as well as Approved entries so the expense summary matches the
+        fuel report; only Rejected entries are left out.
+        """
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         cursor.execute('''
-            SELECT SUM(total_cost) as total FROM fuel_consumption 
-            WHERE vehicle_id = ? 
+            SELECT SUM(total_cost) as total FROM fuel_consumption
+            WHERE vehicle_id = ?
             AND strftime('%Y-%m', date) = ?
-            AND status = 'Approved'
+            AND COALESCE(status, 'Pending') != 'Rejected'
         ''', (vehicle_id, month))
         
         result = cursor.fetchone()
