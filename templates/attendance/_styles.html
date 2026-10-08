@@ -1,0 +1,102 @@
+<!-- Shared styles for the attendance pages (same look as the report pages) -->
+<style>
+    :root {
+        --odoo-primary: #1E3A8A;
+        --odoo-primary-light: #3B82F6;
+        --odoo-bg: #F3F6FC;
+        --odoo-card-bg: #FFFFFF;
+        --odoo-border: #E9EDF2;
+        --odoo-text: #1F2A44;
+        --odoo-text-light: #5A6E8A;
+        --focus-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+        --att-present: #16A34A;
+        --att-garage: #D97706;
+        --att-driver: #DC2626;
+        --att-nodriver: #64748B;
+    }
+    .odoo-attendance-container { max-width: 1400px; margin: 1.5rem auto; padding: 0 1.5rem; }
+    .o_control_panel { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .o_cp_breadcrumbs .breadcrumb { background: transparent; margin: 0; padding: 0; font-size: 0.85rem; }
+    .breadcrumb-item a { color: var(--odoo-primary); text-decoration: none; }
+    .breadcrumb-item.active { color: var(--odoo-text-light); font-weight: 500; }
+    .o_cp_right { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .o_cp_button {
+        border-radius: 8px; font-weight: 500; padding: 0.4rem 1rem; font-size: 0.8rem;
+        border: 1px solid var(--odoo-border); background: white; color: var(--odoo-text);
+        text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;
+    }
+    .o_cp_button:hover { background: var(--odoo-primary); color: white; border-color: var(--odoo-primary); }
+    .o_card { background: var(--odoo-card-bg); border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05); border: 1px solid var(--odoo-border); overflow: hidden; margin-bottom: 1.5rem; }
+    .o_card_header { padding: 1rem 1.8rem; font-weight: 600; font-size: 1rem; color: var(--odoo-text); border-bottom: 1px solid var(--odoo-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; background: white; }
+    .o_header_badge { background: #F1F5F9; font-size: 0.7rem; font-weight: 500; padding: 0.25rem 0.8rem; border-radius: 30px; color: #475569; }
+    .o_card_body { padding: 1.5rem 1.8rem; }
+    .o_filter_bar { background: #F9FBFE; border-radius: 18px; padding: 1rem 1.2rem; margin-bottom: 1.8rem; border: 1px solid var(--odoo-border); }
+    .o_filter_row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+    .o_filter_group { flex: 1; min-width: 180px; }
+    .o_filter_label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--odoo-text-light); display: block; margin-bottom: 0.3rem; }
+    .o_input, .o_select { width: 100%; padding: 0.55rem 0.9rem; border: 1px solid var(--odoo-border); border-radius: 10px; font-size: 0.85rem; background: white; }
+    .o_input:focus, .o_select:focus { border-color: var(--odoo-primary-light); box-shadow: var(--focus-shadow); outline: none; }
+    .o_filter_actions { display: flex; gap: 0.5rem; margin-bottom: 0.2rem; flex-wrap: wrap; }
+    .o_btn_primary_small, .o_btn_secondary_small {
+        padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.75rem; font-weight: 500; border: none;
+        cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .o_btn_primary_small { background: var(--odoo-primary); color: white; }
+    .o_btn_primary_small:hover { background: #1E40AF; color: white; }
+    .o_btn_secondary_small { background: white; border: 1px solid var(--odoo-border); color: var(--odoo-text); }
+    .o_btn_secondary_small:hover { background: #F1F5F9; }
+    .o_kpi_grid { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 1.8rem; }
+    .o_kpi_card { background: white; border: 1px solid var(--odoo-border); border-radius: 20px; padding: 1rem 0.8rem; flex: 1 1 160px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    .o_kpi_icon { width: 48px; height: 48px; margin: 0 auto 0.75rem; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-size: 1.3rem; }
+    .bg-soft-info { background: #EFF6FF; color: #1E3A8A; }
+    .bg-soft-success { background: #E6F7EC; color: #0A6E43; }
+    .bg-soft-warning { background: #FFF4E5; color: #C17B0E; }
+    .bg-soft-danger { background: #FEF2F2; color: #B91C1C; }
+    .bg-soft-muted { background: #F1F5F9; color: #475569; }
+    .o_kpi_value { font-size: 1.6rem; font-weight: 700; color: var(--odoo-text); line-height: 1.2; }
+    .o_kpi_label { font-size: 0.7rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.4px; color: var(--odoo-text-light); margin-top: 0.3rem; }
+    .o_kpi_sub { font-size: 0.7rem; color: var(--odoo-text-light); margin-top: 0.2rem; }
+    .o_section_title { font-weight: 600; color: var(--odoo-primary); margin-bottom: 1rem; font-size: 0.9rem; border-left: 3px solid var(--odoo-primary); padding-left: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+    .o_data_table { width: 100%; border-collapse: collapse; }
+    .o_data_table thead th { background: #F9FBFE; padding: 0.8rem 1rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--odoo-text-light); border-bottom: 1px solid var(--odoo-border); text-align: left; white-space: nowrap; }
+    .o_data_row td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--odoo-border); font-size: 0.85rem; vertical-align: middle; }
+    .o_table_footer th { background: #F1F5F9; padding: 0.8rem 1rem; border-top: 1px solid var(--odoo-border); }
+
+    /* Attendance notice */
+    .att_notice { border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; display: flex; gap: 0.6rem; align-items: center; }
+    .att_notice_saved { background: #E6F7EC; color: #0A6E43; border-left: 4px solid var(--att-present); }
+    .att_notice_unsaved { background: #FEF3C7; color: #78350F; border-left: 4px solid #F59E0B; }
+
+    /* Attendance select coloured by its value */
+    .att_select { min-width: 220px; font-weight: 600; border-left-width: 4px; }
+    .att_select[data-code="present"] { border-left-color: var(--att-present); color: var(--att-present); }
+    .att_select[data-code="garage"] { border-left-color: var(--att-garage); color: var(--att-garage); }
+    .att_select[data-code="driver_absent"] { border-left-color: var(--att-driver); color: var(--att-driver); }
+    .att_select[data-code="no_driver"] { border-left-color: var(--att-nodriver); color: var(--att-nodriver); }
+    .att_notes { min-width: 160px; }
+
+    /* Attendance bar: one coloured segment per kind of day */
+    .att_bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #EEF2F7; min-width: 160px; }
+    .att_bar span { display: block; height: 100%; }
+    .att_seg_present { background: var(--att-present); }
+    .att_seg_garage { background: var(--att-garage); }
+    .att_seg_driver { background: var(--att-driver); }
+    .att_seg_nodriver { background: var(--att-nodriver); }
+    .att_legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.75rem; color: var(--odoo-text-light); margin-bottom: 0.8rem; }
+    .att_legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 0.3rem; vertical-align: -1px; }
+    .att_pct { font-size: 0.75rem; color: var(--odoo-text-light); }
+
+    @media print {
+        #sidebar, .o_main_navbar, .o_control_panel, .o_filter_bar, .no-print { display: none !important; }
+        .o_card { box-shadow: none; }
+        .att_bar span { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    @media (max-width: 768px) {
+        .odoo-attendance-container { padding: 0.5rem; }
+        .o_card_body { padding: 1rem; }
+        .o_kpi_grid { gap: 0.8rem; }
+        .o_kpi_card { min-width: 130px; }
+        .o_filter_row { flex-direction: column; align-items: stretch; }
+        .o_data_table thead th, .o_data_row td { padding: 0.6rem 0.5rem; font-size: 0.75rem; }
+    }
+</style>

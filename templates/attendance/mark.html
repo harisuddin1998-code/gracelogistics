@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-attendance-container">
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house me-1"></i>Fleet ERP</a></li>
+                    <li class="breadcrumb-item active">Vehicle Attendance</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-primary);">Daily Vehicle Attendance</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('attendance.attendance_report', month=date[:7]) }}" class="o_cp_button">
+                <i class="fas fa-chart-bar"></i> Monthly Report
+            </a>
+        </div>
+    </div>
+
+    <div class="o_card">
+        <div class="o_card_header">
+            <span><i class="fas fa-clipboard-check me-2"></i> Attendance for {{ date }}</span>
+            <span class="o_header_badge">{{ rows|length }} vehicles</span>
+        </div>
+        <div class="o_card_body">
+            <!-- Pick the day -->
+            <div class="o_filter_bar">
+                <form method="GET" class="o_filter_row">
+                    <div class="o_filter_group">
+                        <label class="o_filter_label"><i class="fas fa-calendar-day"></i> Date</label>
+                        <input type="date" name="date" class="o_input" value="{{ date }}" onchange="this.form.submit()">
+                    </div>
+                    <div class="o_filter_actions">
+                        <button type="submit" class="o_btn_primary_small"><i class="fas fa-search"></i> Load</button>
+                        <a href="{{ url_for('attendance.mark_attendance') }}" class="o_btn_secondary_small"><i class="fas fa-calendar-check"></i> Today</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Day totals -->
+            <div class="o_kpi_grid">
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-success"><i class="fas fa-check-circle"></i></div>
+                    <div class="o_kpi_value" id="count_present">{{ counts.present }}</div>
+                    <div class="o_kpi_label">Present</div>
+                    <div class="o_kpi_sub">On the road</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-warning"><i class="fas fa-warehouse"></i></div>
+                    <div class="o_kpi_value" id="count_garage">{{ counts.garage }}</div>
+                    <div class="o_kpi_label">In Garage</div>
+                    <div class="o_kpi_sub">Car not available</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-danger"><i class="fas fa-user-xmark"></i></div>
+                    <div class="o_kpi_value" id="count_driver_absent">{{ counts.driver_absent }}</div>
+                    <div class="o_kpi_label">Driver Absent</div>
+                    <div class="o_kpi_sub">Car &amp; driver absent</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-muted"><i class="fas fa-user-slash"></i></div>
+                    <div class="o_kpi_value" id="count_no_driver">{{ counts.no_driver }}</div>
+                    <div class="o_kpi_label">No Driver</div>
+                    <div class="o_kpi_sub">Driver not allotted</div>
+                </div>
+            </div>
+
+            {% if is_saved %}
+            <div class="att_notice att_notice_saved"><i class="fas fa-circle-check"></i> Attendance for this day is saved. Change any row and press Save to update it.</div>
+            {% else %}
+            <div class="att_notice att_notice_unsaved"><i class="fas fa-triangle-exclamation"></i> Not saved yet. Suggested values are filled in (cars under repair = In Garage, cars without a driver = No Driver). Check them and press Save.</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('attendance.mark_attendance', date=date) }}">
+                <input type="hidden" name="date" value="{{ date }}">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div class="o_section_title mb-0"><i class="fas fa-list-check"></i> Vehicles</div>
+                    <button type="button" class="o_btn_secondary_small" id="allPresent"><i class="fas fa-check-double"></i> Mark all with driver Present</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="o_data_table" id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th>Driver</th>
+                                <th>Vehicle Attendance</th>
+                                <th>Driver Attendance</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            {% set v = row.vehicle %}
+                            <tr class="o_data_row">
+                                <td class="text-nowrap">
+                                    <span class="o_status_badge o_status_blue fw-bold">{{ v.registration_no }}</span>
+                                    <small class="text-muted ms-1">{{ v.make }} {{ v.model }}</small>
+                                    {% if v.status == 'Under Repair' %}<span class="o_status_badge o_status_warning ms-1">Under Repair</span>{% endif %}
+                                </td>
+                                <td class="text-nowrap">
+                                    {% if v.assigned_driver_id %}{{ v.driver_name }}{% else %}<span class="text-muted fst-italic">Not allotted</span>{% endif %}
+                                </td>
+                                <td>
+                                    <select name="code_{{ v.vehicle_id }}" class="o_select att_select" data-code="{{ row.code }}" data-has-driver="{{ 1 if v.assigned_driver_id else 0 }}">
+                                        {% for code in row.allowed %}
+                                        <option value="{{ code }}" {% if code == row.code %}selected{% endif %}>{{ labels[code] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="text-nowrap driver-status"></td>
+                                <td><input type="text" name="notes_{{ v.vehicle_id }}" class="o_input att_notes" value="{{ row.notes }}" placeholder="Optional"></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">No vehicles found. Add vehicles first.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if rows %}
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="o_btn_primary_small" style="padding: 0.6rem 1.6rem; font-size: 0.85rem;">
+                        <i class="fas fa-floppy-disk"></i> Save Attendance
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include "attendance/_styles.html" %}
+
+<script>
+    (function() {
+        const selects = document.querySelectorAll('#attendanceTable .att_select');
+        // What happens to the driver for each vehicle choice
+        const driverBadge = {
+            present: '<span class="o_status_badge o_status_success"><i class="fas fa-check me-1"></i>Present</span>',
+            garage: '<span class="o_status_badge o_status_success"><i class="fas fa-check me-1"></i>Present</span>',
+            driver_absent: '<span class="o_status_badge o_status_danger"><i class="fas fa-xmark me-1"></i>Absent</span>',
+            no_driver: '<span class="text-muted">—</span>'
+        };
+
+        function refreshRow(select) {
+            select.dataset.code = select.value;
+            const hasDriver = select.dataset.hasDriver === '1';
+            select.closest('tr').querySelector('.driver-status').innerHTML =
+                hasDriver ? driverBadge[select.value] : driverBadge.no_driver;
+        }
+
+        function refreshCounts() {
+            ['present', 'garage', 'driver_absent', 'no_driver'].forEach(function(code) {
+                const el = document.getElementById('count_' + code);
+                if (el) el.textContent = Array.from(selects).filter(s => s.value === code).length;
+            });
+        }
+
+        selects.forEach(function(select) {
+            refreshRow(select);
+            select.addEventListener('change', function() { refreshRow(select); refreshCounts(); });
+        });
+
+        document.getElementById('allPresent')?.addEventListener('click', function() {
+            selects.forEach(function(select) {
+                if (select.dataset.hasDriver === '1') { select.value = 'present'; refreshRow(select); }
+            });
+            refreshCounts();
+        });
+    })();
+</script>
+{% endblock %}

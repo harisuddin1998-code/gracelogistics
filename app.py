@@ -180,6 +180,10 @@ def create_maintenance_tables():
 # Call the function to ensure all maintenance tables exist
 create_maintenance_tables()
 
+# Vehicle / driver attendance table (added later, so it is created on existing databases too)
+from models.attendance_model import create_attendance_table
+create_attendance_table()
+
 # Allow empty fields: drop NOT NULL constraints from data-entry tables (backs up the DB first,
 # does nothing once the tables are already relaxed)
 relax_not_null_constraints()
@@ -340,6 +344,7 @@ from controllers.stock_controller import stock_bp
 from controllers.report_controller import report_bp
 from controllers.settings_controller import settings_bp
 from controllers.vendor_controller import vendor_bp
+from controllers.attendance_controller import attendance_bp
 
 app.register_blueprint(vehicle_bp)
 app.register_blueprint(driver_bp)
@@ -352,6 +357,7 @@ app.register_blueprint(stock_bp)
 app.register_blueprint(report_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(vendor_bp)
+app.register_blueprint(attendance_bp)
 
 # ============================================
 # ERROR HANDLERS

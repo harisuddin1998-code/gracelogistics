@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="odoo-attendance-container">
+    <div class="o_control_panel">
+        <div class="o_cp_left">
+            <div class="o_cp_breadcrumbs">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('attendance.mark_attendance') }}">Attendance</a></li>
+                    <li class="breadcrumb-item active">Monthly Report</li>
+                </ol>
+            </div>
+            <h5 class="mb-0 fw-bold" style="color: var(--odoo-primary);">Attendance Report</h5>
+        </div>
+        <div class="o_cp_right">
+            <a href="{{ url_for('attendance.mark_attendance') }}" class="o_cp_button"><i class="fas fa-clipboard-check"></i> Mark Attendance</a>
+            <button type="button" class="o_cp_button" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+        </div>
+    </div>
+
+    <div class="o_card">
+        <div class="o_card_header">
+            <span><i class="fas fa-chart-bar me-2"></i> Vehicle Attendance — {{ month }}</span>
+            <span class="o_header_badge">{{ vehicles|length }} vehicles marked</span>
+        </div>
+        <div class="o_card_body">
+            <div class="o_filter_bar">
+                <form method="GET" class="o_filter_row">
+                    <div class="o_filter_group">
+                        <label class="o_filter_label"><i class="fas fa-calendar-alt"></i> Select Month</label>
+                        <input type="month" name="month" class="o_input" value="{{ month }}">
+                    </div>
+                    <div class="o_filter_actions">
+                        <button type="submit" class="o_btn_primary_small"><i class="fas fa-search"></i> Filter</button>
+                        <a href="{{ url_for('attendance.attendance_report') }}" class="o_btn_secondary_small"><i class="fas fa-times"></i> Reset</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="o_kpi_grid">
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-success"><i class="fas fa-check-circle"></i></div>
+                    <div class="o_kpi_value">{{ totals.present }}</div>
+                    <div class="o_kpi_label">Present Days</div>
+                    <div class="o_kpi_sub">All vehicles</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-warning"><i class="fas fa-warehouse"></i></div>
+                    <div class="o_kpi_value">{{ totals.garage }}</div>
+                    <div class="o_kpi_label">In Garage</div>
+                    <div class="o_kpi_sub">Car not available</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-danger"><i class="fas fa-user-xmark"></i></div>
+                    <div class="o_kpi_value">{{ totals.driver_absent }}</div>
+                    <div class="o_kpi_label">Driver Absent</div>
+                    <div class="o_kpi_sub">Car &amp; driver absent</div>
+                </div>
+                <div class="o_kpi_card">
+                    <div class="o_kpi_icon bg-soft-muted"><i class="fas fa-user-slash"></i></div>
+                    <div class="o_kpi_value">{{ totals.no_driver }}</div>
+                    <div class="o_kpi_label">No Driver</div>
+                    <div class="o_kpi_sub">Driver not allotted</div>
+                </div>
+            </div>
+
+            <div class="o_section_title"><i class="fas fa-truck"></i> Vehicles</div>
+            <div class="att_legend">
+                <span><i class="att_seg_present"></i>Present</span>
+                <span><i class="att_seg_garage"></i>In Garage</span>
+                <span><i class="att_seg_driver"></i>Driver Absent</span>
+                <span><i class="att_seg_nodriver"></i>No Driver</span>
+            </div>
+            <div class="table-responsive">
+                <table class="o_data_table">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Attendance</th>
+                            <th class="text-center">Present</th>
+                            <th class="text-center">In Garage</th>
+                            <th class="text-center">Driver Absent</th>
+                            <th class="text-center">No Driver</th>
+                            <th class="text-center">Days Marked</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in vehicles %}
+                        {% set total = v.marked_days or 1 %}
+                        <tr class="o_data_row">
+                            <td class="text-nowrap">
+                                <span class="o_status_badge o_status_blue fw-bold">{{ v.registration_no }}</span>
+                                <small class="text-muted ms-1">{{ v.make }} {{ v.model }}</small>
+                            </td>
+                            <td>
+                                <div class="att_bar" title="Present {{ v.present_days }}, In Garage {{ v.garage_days }}, Driver Absent {{ v.driver_absent_days }}, No Driver {{ v.no_driver_days }}">
+                                    <span class="att_seg_present" style="width: {{ v.present_days * 100 / total }}%"></span>
+                                    <span class="att_seg_garage" style="width: {{ v.garage_days * 100 / total }}%"></span>
+                                    <span class="att_seg_driver" style="width: {{ v.driver_absent_days * 100 / total }}%"></span>
+                                    <span class="att_seg_nodriver" style="width: {{ v.no_driver_days * 100 / total }}%"></span>
+                                </div>
+                                <div class="att_pct mt-1">{{ "%.0f"|format(v.present_days * 100 / total) }}% present</div>
+                            </td>
+                            <td class="text-center fw-semibold" style="color: var(--att-present);">{{ v.present_days }}</td>
+                            <td class="text-center">{{ v.garage_days }}</td>
+                            <td class="text-center">{{ v.driver_absent_days }}</td>
+                            <td class="text-center">{{ v.no_driver_days }}</td>
+                            <td class="text-center">{{ v.marked_days }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">No attendance marked for {{ month }}.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="o_card">
+        <div class="o_card_header">
+            <span><i class="fas fa-id-badge me-2"></i> Driver Attendance — {{ month }}</span>
+            <span class="o_header_badge">From vehicle attendance</span>
+        </div>
+        <div class="o_card_body">
+            <div class="table-responsive">
+                <table class="o_data_table">
+                    <thead>
+                        <tr>
+                            <th>Driver</th>
+                            <th>Attendance</th>
+                            <th class="text-center">Present</th>
+                            <th class="text-center">Absent</th>
+                            <th>Absent On (day of month)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in drivers %}
+                        {% set total = (d.present_days + d.absent_days) or 1 %}
+                        <tr class="o_data_row">
+                            <td class="text-nowrap fw-semibold">{{ d.full_name }}</td>
+                            <td>
+                                <div class="att_bar" title="Present {{ d.present_days }}, Absent {{ d.absent_days }}">
+                                    <span class="att_seg_present" style="width: {{ d.present_days * 100 / total }}%"></span>
+                                    <span class="att_seg_driver" style="width: {{ d.absent_days * 100 / total }}%"></span>
+                                </div>
+                            </td>
+                            <td class="text-center fw-semibold" style="color: var(--att-present);">{{ d.present_days }}</td>
+                            <td class="text-center fw-semibold" style="color: var(--att-driver);">{{ d.absent_days }}</td>
+                            <td>{{ d.absent_dates or '—' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No driver attendance for {{ month }}.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "attendance/_styles.html" %}
+{% endblock %}
