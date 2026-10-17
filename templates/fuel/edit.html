@@ -47,7 +47,7 @@
 
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Liters <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" name="liters" id="liters" class="form-control" value="{{ entry.liters }}">
+                        <input type="number" step="0.001" name="liters" id="liters" class="form-control" value="{{ entry.liters }}">
                     </div>
 
                     <div class="col-md-4">
@@ -60,12 +60,17 @@
                         <input type="text" id="totalCost" class="form-control bg-light fw-bold" value="PKR {{ '{:,.2f}'.format(entry.total_cost) }}" readonly>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Odometer Reading (km) <span class="text-danger">*</span></label>
                         <input type="number" name="odometer_reading" class="form-control" value="{{ entry.odometer_reading }}">
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Fuel Type</label>
+                        <input type="text" name="fuel_type" class="form-control" value="{{ entry.fuel_type or '' }}" placeholder="e.g., Petrol (Premier Euro 5)">
+                    </div>
+
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Fuel Station</label>
                         <input type="text" name="fuel_station" class="form-control" value="{{ entry.fuel_station or '' }}" placeholder="e.g., Shell, PSO, Total">
                     </div>

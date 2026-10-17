@@ -54,7 +54,8 @@
                                     {% for v in vehicles %}
                                     <option value="{{ v.vehicle_id }}" 
                                             data-reg="{{ v.registration_no }}"
-                                            data-odometer="{{ v.current_odometer }}">
+                                            data-odometer="{{ v.current_odometer }}"
+                                            data-fuel-type="{{ (v.fuel_type or '')|lower }}">
                                         {{ v.registration_no }} - {{ v.make }} {{ v.model }}
                                     </option>
                                     {% endfor %}
@@ -87,6 +88,19 @@
                                 </div>
                             </div>
                             <div class="o_field_widget">
+                                <label class="o_form_label">Fuel Type <span class="o_required">*</span></label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol"><i class="fas fa-oil-can"></i></span>
+                                    <select name="fuel_type" id="fuelType" class="o_select_plain">
+                                        <option value="">Loading PSO rates...</option>
+                                    </select>
+                                    <button type="button" id="btnRefreshRates" class="o_refresh_btn" title="Refresh PSO rates">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <span class="o_field_help" id="psoRateInfo">Rates fetched live from PSO (psopk.com)</span>
+                            </div>
+                            <div class="o_field_widget">
                                 <label class="o_form_label">Fuel Station</label>
                                 <div class="o_input_currency">
                                     <span class="o_currency_symbol"><i class="fas fa-gas-pump"></i></span>
@@ -103,20 +117,31 @@
                         </div>
                         <div class="o_group_fields">
                             <div class="o_field_widget">
+                                <label class="o_form_label">Amount Paid (PKR)</label>
+                                <div class="o_input_currency">
+                                    <span class="o_currency_symbol">₨</span>
+                                    <input type="number" step="0.01" name="total_amount" id="amountPaid"
+                                           placeholder="e.g., 5000">
+                                </div>
+                                <span class="o_field_help">Enter rupees paid - liters are calculated from the rate</span>
+                            </div>
+                            <div class="o_field_widget">
                                 <label class="o_form_label">Liters <span class="o_required">*</span></label>
                                 <div class="o_input_currency">
                                     <span class="o_currency_symbol"><i class="fas fa-tint"></i></span>
-                                    <input type="number" step="0.01" name="liters" id="liters" 
+                                    <input type="number" step="0.001" name="liters" id="liters"
                                            placeholder="0.00">
                                 </div>
+                                <span class="o_field_help">Auto-filled from amount, or type liters directly</span>
                             </div>
                             <div class="o_field_widget">
                                 <label class="o_form_label">Cost per Liter (PKR) <span class="o_required">*</span></label>
                                 <div class="o_input_currency">
                                     <span class="o_currency_symbol">₨</span>
-                                    <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter" 
+                                    <input type="number" step="0.01" name="cost_per_liter" id="costPerLiter"
                                            placeholder="0.00">
                                 </div>
+                                <span class="o_field_help">Auto-filled from PSO rate - edit if the pump rate differs</span>
                             </div>
                         </div>
                     </div>
@@ -144,7 +169,7 @@
                                 <input type="text" id="totalCost" class="o_input" readonly 
                                        style="background-color: #F8FAFC; font-weight: bold;">
                             </div>
-                            <span class="o_field_help">Liters × Cost per Liter</span>
+                            <span class="o_field_help">Amount paid, or Liters × Cost per Liter</span>
                         </div>
                         <div class="o_field_widget">
                             <label class="o_form_label">Fuel Efficiency</label>
@@ -478,6 +503,27 @@
         outline: none;
     }
 
+    .o_select_plain {
+        border: none;
+        padding: 0.65rem 0;
+        background: transparent;
+        width: 100%;
+        outline: none;
+        font-size: 0.9rem;
+    }
+
+    .o_refresh_btn {
+        border: none;
+        background: transparent;
+        color: var(--primary-light);
+        padding: 0 0.75rem;
+        cursor: pointer;
+    }
+
+    .o_refresh_btn:hover {
+        color: var(--primary-blue);
+    }
+
     /* Chatter */
     .o_chatter_wrapper {
         margin-top: 2rem;
@@ -596,15 +642,108 @@
         const totalCostInput = document.getElementById('totalCost');
         const odometerReadingInput = document.getElementById('odometerReading');
         const fuelEfficiencySpan = document.getElementById('fuelEfficiency');
-        
+        const fuelTypeSelect = document.getElementById('fuelType');
+        const amountPaidInput = document.getElementById('amountPaid');
+        const refreshRatesBtn = document.getElementById('btnRefreshRates');
+        const psoRateInfo = document.getElementById('psoRateInfo');
+
+        // Which of amount / liters the user typed last - the other one is derived from the rate
+        let lastEdited = 'amount';
+
         // Calculate total cost
         function calculateTotalCost() {
-            const liters = parseFloat(litersInput.value) || 0;
             const costPerLiter = parseFloat(costPerLiterInput.value) || 0;
+            const amount = parseFloat(amountPaidInput.value) || 0;
+
+            if (lastEdited === 'amount' && amount > 0) {
+                if (costPerLiter > 0) {
+                    litersInput.value = (amount / costPerLiter).toFixed(3);
+                }
+                totalCostInput.value = amount.toFixed(2);
+                return amount;
+            }
+
+            const liters = parseFloat(litersInput.value) || 0;
             const total = liters * costPerLiter;
             totalCostInput.value = total.toFixed(2);
+            amountPaidInput.value = total > 0 ? total.toFixed(2) : '';
             return total;
         }
+
+        // PSO rates
+        function applySelectedRate() {
+            const price = parseFloat(fuelTypeSelect.selectedOptions[0]?.dataset?.price);
+            if (price > 0) {
+                costPerLiterInput.value = price.toFixed(2);
+            }
+            calculateTotalCost();
+            calculateFuelEfficiency();
+        }
+
+        function setRateInfo(text, color) {
+            psoRateInfo.textContent = text;
+            psoRateInfo.style.color = color || '';
+        }
+
+        function loadPsoRates(refresh) {
+            const previous = fuelTypeSelect.value;
+            const icon = refreshRatesBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            fetch("{{ url_for('fuel.api_pso_prices') }}" + (refresh ? '?refresh=1' : ''))
+                .then(res => res.json())
+                .then(data => {
+                    fuelTypeSelect.innerHTML = '<option value="">-- Select Fuel Type --</option>';
+                    Object.entries(data.prices || {}).forEach(([key, p]) => {
+                        const opt = document.createElement('option');
+                        opt.value = p.label;
+                        opt.dataset.key = key;
+                        opt.dataset.price = p.price;
+                        opt.textContent = `${p.label} - Rs ${p.price.toFixed(2)}/${p.unit}`;
+                        fuelTypeSelect.appendChild(opt);
+                    });
+                    fuelTypeSelect.add(new Option('Other (enter rate manually)', 'Other'));
+                    if (previous) fuelTypeSelect.value = previous;
+
+                    if (!data.fetched_at) {
+                        setRateInfo('Could not reach PSO - enter the rate manually', '#DC2626');
+                    } else if (data.stale) {
+                        setRateInfo(`PSO unreachable - showing rates from ${data.fetched_at}`, '#B45309');
+                    } else {
+                        setRateInfo(`Live PSO rates as of ${data.fetched_at}`);
+                    }
+                    if (fuelTypeSelect.value) {
+                        applySelectedRate();
+                    } else {
+                        selectVehicleFuelType();
+                    }
+                })
+                .catch(() => {
+                    fuelTypeSelect.innerHTML = '<option value="">-- Select Fuel Type --</option>';
+                    fuelTypeSelect.add(new Option('Other (enter rate manually)', 'Other'));
+                    setRateInfo('Could not load PSO rates - enter the rate manually', '#DC2626');
+                })
+                .finally(() => icon.classList.remove('fa-spin'));
+        }
+
+        // Pre-select the vehicle's own fuel (petrol / diesel) while the type is still empty
+        function selectVehicleFuelType() {
+            const vehicleFuel = vehicleSelect.selectedOptions[0]?.dataset?.fuelType || '';
+            if (!vehicleFuel || fuelTypeSelect.value) return;
+            const match = [...fuelTypeSelect.options].find(o => o.dataset.key && vehicleFuel.includes(o.dataset.key));
+            if (match) {
+                fuelTypeSelect.value = match.value;
+                applySelectedRate();
+            }
+        }
+
+        fuelTypeSelect.addEventListener('change', applySelectedRate);
+        refreshRatesBtn.addEventListener('click', () => loadPsoRates(true));
+        amountPaidInput.addEventListener('input', function() {
+            lastEdited = 'amount';
+            calculateTotalCost();
+            calculateFuelEfficiency();
+        });
+        loadPsoRates(false);
         
         // Calculate fuel efficiency
         function calculateFuelEfficiency() {
@@ -645,19 +784,24 @@
                 } else {
                     currentOdometerSpan.querySelector('span').innerHTML = 'Not Selected';
                 }
+                selectVehicleFuelType();
             });
         }
         
         // Add event listeners for calculations
         if (litersInput) {
             litersInput.addEventListener('input', function() {
+                lastEdited = 'liters';
                 calculateTotalCost();
                 calculateFuelEfficiency();
             });
         }
         
         if (costPerLiterInput) {
-            costPerLiterInput.addEventListener('input', calculateTotalCost);
+            costPerLiterInput.addEventListener('input', function() {
+                calculateTotalCost();
+                calculateFuelEfficiency();
+            });
         }
         
         if (odometerReadingInput) {
@@ -714,6 +858,7 @@
         // Reset form function
         function resetFormFields() {
             form.reset();
+            lastEdited = 'amount';
             totalCostInput.value = '';
             fuelEfficiencySpan.querySelector('span').innerHTML = '—';
             if (currentOdometerSpan) {

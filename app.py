@@ -188,6 +188,10 @@ create_attendance_table()
 # does nothing once the tables are already relaxed)
 relax_not_null_constraints()
 
+# Fuel logs store the fuel type picked from the PSO rate list
+from models.fuel_model import FuelModel
+FuelModel.ensure_fuel_type_column()
+
 # Empty (NULL) values render as blank text instead of the word "None"
 app.jinja_env.finalize = lambda value: '' if value is None else value
 
