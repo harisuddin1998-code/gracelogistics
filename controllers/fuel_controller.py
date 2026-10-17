@@ -4,6 +4,7 @@ from models.fuel_model import FuelModel
 from models.vehicle_model import VehicleModel
 from datetime import datetime
 from utils.helpers import form_text, form_float, form_int, form_date, form_id
+from utils.pso_prices import get_pso_prices
 
 fuel_bp = Blueprint('fuel', __name__, url_prefix='/fuel')
 
@@ -24,7 +25,9 @@ def _fuel_form_data():
         'liters': form_float(request.form, 'liters'),
         'cost_per_liter': form_float(request.form, 'cost_per_liter'),
         'odometer_reading': form_int(request.form, 'odometer_reading'),
-        'fuel_station': form_text(request.form, 'fuel_station')
+        'fuel_station': form_text(request.form, 'fuel_station'),
+        'fuel_type': form_text(request.form, 'fuel_type'),
+        'total_cost': form_float(request.form, 'total_amount')
     }
 
 
@@ -122,3 +125,8 @@ def approve_fuel(fuel_id):
 def api_efficiency(vehicle_id):
     efficiency = FuelModel.get_fuel_efficiency(vehicle_id, 30)
     return jsonify({'vehicle_id': vehicle_id, 'efficiency': efficiency})
+
+@fuel_bp.route('/api/pso-prices')
+@login_required
+def api_pso_prices():
+    return jsonify(get_pso_prices(force=request.args.get('refresh') == '1'))

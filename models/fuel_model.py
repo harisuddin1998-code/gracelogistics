@@ -4,22 +4,39 @@ from datetime import datetime, timedelta
 class FuelModel:
     
     @staticmethod
+    def ensure_fuel_type_column():
+        """Add fuel_consumption.fuel_type to databases created before it existed"""
+        conn = get_db_connection()
+        columns = [row['name'] for row in conn.execute("PRAGMA table_info(fuel_consumption)")]
+        if columns and 'fuel_type' not in columns:
+            conn.execute("ALTER TABLE fuel_consumption ADD COLUMN fuel_type TEXT")
+            conn.commit()
+        conn.close()
+    
+    @staticmethod
+    def _total_cost(data):
+        """Amount actually paid if entered (e.g. Rs 5000), otherwise liters x rate"""
+        if data.get('total_cost'):
+            return data['total_cost']
+        return round(data['liters'] * data['cost_per_liter'], 2)
+    
+    @staticmethod
     def add_fuel_entry(data):
         """Add fuel consumption entry"""
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        total_cost = data['liters'] * data['cost_per_liter']
+        total_cost = FuelModel._total_cost(data)
         
         cursor.execute('''
             INSERT INTO fuel_consumption 
             (vehicle_id, date, liters, cost_per_liter, total_cost, odometer_reading, 
-             fuel_station, receipt_image, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             fuel_station, fuel_type, receipt_image, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             data['vehicle_id'], data['date'], data['liters'], data['cost_per_liter'],
             total_cost, data['odometer_reading'], data.get('fuel_station', ''),
-            data.get('receipt_image', ''), data.get('status', 'Pending')
+            data.get('fuel_type', ''), data.get('receipt_image', ''), data.get('status', 'Pending')
         ))
         
         conn.commit()
@@ -178,15 +195,16 @@ class FuelModel:
         """Update a fuel entry"""
         conn = get_db_connection()
         cursor = conn.cursor()
-        total_cost = data['liters'] * data['cost_per_liter']
+        total_cost = FuelModel._total_cost(data)
         cursor.execute('''
             UPDATE fuel_consumption
             SET vehicle_id = ?, date = ?, liters = ?, cost_per_liter = ?,
-                total_cost = ?, odometer_reading = ?, fuel_station = ?
+                total_cost = ?, odometer_reading = ?, fuel_station = ?, fuel_type = ?
             WHERE fuel_id = ?
         ''', (
             data['vehicle_id'], data['date'], data['liters'], data['cost_per_liter'],
-            total_cost, data['odometer_reading'], data.get('fuel_station', ''), fuel_id
+            total_cost, data['odometer_reading'], data.get('fuel_station', ''),
+            data.get('fuel_type', ''), fuel_id
         ))
         # Update vehicle odometer if higher
         cursor.execute('''
